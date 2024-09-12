@@ -5,12 +5,17 @@
 
 File scriptFile;
 const int chipSelectPin = 4;
-const int ledPin = 9;  
+const int ledPin = 12;  
+const int evileye = 30; 
 const String scriptFileName = "script.txt";
 bool sdCardPresent = false;
 
 void setup() {
   pinMode(ledPin, OUTPUT);
+  pinMode(evileye, OUTPUT);
+  
+  digitalWrite(evileye, HIGH);
+  
   Keyboard.begin();
 }
 
@@ -51,6 +56,7 @@ void executeScript() {
   executeCommand(currentLine);
   scriptFile.close();
   Keyboard.end();
+  digitalWrite(evileye, HIGH);
 }
 
 void executeCommand(String line) {

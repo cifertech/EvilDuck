@@ -29,7 +29,7 @@
 
 ## 📖 Explore the Full Documentation
 
-Ready to dive deeper into EvilDuck's details? Discover the full story, in-depth tutorials, and all the exciting features in our comprehensive [documentation](https://cifertech.net/nrfbox-your-all-in-one-gadget-for-ble-and-2-4ghz-networks/). Click the link and explore further!
+Ready to dive deeper into EvilDuck's details? Discover the full story, in-depth tutorials, and all the exciting features in our comprehensive [documentation](https://cifertech.net/evilduck-diy-usb-rubber-ducky-for-ethical-hacking/). Click the link and explore further!
   
 
 ## 🌟 About the Project
@@ -62,7 +62,7 @@ EvilDuck enables anyone to build a powerful USB keystroke injection tool with si
 
 
 ## 🔌 Schematic
-The detailed schematic of the EvilDuck setup can be found [here](hardware/schematic.pdf). This will guide you in wiring the SD card module and LED to your Arduino Micro.
+The detailed schematic of the EvilDuck setup can be found [here](https://cifertech.net/evilduck-diy-usb-rubber-ducky-for-ethical-hacking/). This will guide you in wiring the SD card module and LED to your Arduino Micro.
 
 1. Connect the SD card module to the Arduino Micro using these pins:
    - **CS** -> Pin 4

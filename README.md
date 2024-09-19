@@ -8,6 +8,8 @@
 
 <!-- Badges -->
 <a href="https://github.com/cifertech/evilduck" title="Go to GitHub repo"><img src="https://img.shields.io/static/v1?label=cifertech&message=evilduck&color=purple&logo=github" alt="cifertech - evilduck"></a>
+<img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/cifertech/EvilDuck/total">
+
 <a href="https://github.com/cifertech/evilduck"><img src="https://img.shields.io/github/stars/cifertech/evilduck?style=social" alt="stars - evilduck"></a>
 <a href="https://github.com/cifertech/evilduck"><img src="https://img.shields.io/github/forks/cifertech/evilduck?style=social" alt="forks - evilduck"></a>
 

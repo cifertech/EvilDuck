@@ -7,10 +7,9 @@
 
 
 <!-- Badges -->
-<a href="https://github.com/cifertech/EvilDuck" title="Go to GitHub repo"><img src="https://img.shields.io/static/v1?label=cifertech&message=EvilDuck&color=purple&logo=github" alt="cifertech - EvilDuck"></a>
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/cifertech/EvilDuck/total)
-<a href="https://github.com/cifertech/EvilDuck"><img src="https://img.shields.io/github/stars/cifertech/EvilDuck?style=social" alt="stars - EvilDuck"></a>
-<a href="https://github.com/cifertech/EvilDuck"><img src="https://img.shields.io/github/forks/cifertech/EvilDuck?style=social" alt="forks - EvilDuck"></a>
+<a href="https://github.com/cifertech/evilduck" title="Go to GitHub repo"><img src="https://img.shields.io/static/v1?label=cifertech&message=evilduck&color=purple&logo=github" alt="cifertech - evilduck"></a>
+<a href="https://github.com/cifertech/evilduck"><img src="https://img.shields.io/github/stars/cifertech/evilduck?style=social" alt="stars - evilduck"></a>
+<a href="https://github.com/cifertech/evilduck"><img src="https://img.shields.io/github/forks/cifertech/evilduck?style=social" alt="forks - evilduck"></a>
 
    
 <h4>

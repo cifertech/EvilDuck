@@ -35,6 +35,10 @@ Ready to dive deeper into EvilDuck's details? Discover the full story, in-depth 
 ## 🌟 About the Project
 EvilDuck enables anyone to build a powerful USB keystroke injection tool with simple hardware. It’s inspired by the original USB Rubber Ducky but allows for more flexibility by using a customizable microcontroller (Arduino Micro) and an SD card for payload storage. This makes it ideal for both educational purposes and professional use in security assessments.
 
+<div align="center"> 
+  <img src="https://github.com/user-attachments/assets/9884f3e4-c826-4bdd-9ccc-641ec075ce81" alt="screenshot" width="Auto" height="Auto" />
+</div>
+
 
 ## 🎯 Features, Software and Hardware
 ### Features
@@ -72,6 +76,10 @@ The detailed schematic of the EvilDuck setup can be found [here](https://ciferte
 2. Connect the status LED:
    - **Anode** -> Pin 9
    - **Cathode** -> Ground
+  
+<div align="center"> 
+  <img src="https://github.com/user-attachments/assets/abd5b46d-fdbf-49c9-b2a4-dd321f4ae481" alt="screenshot" width="Auto" height="Auto" />
+</div>
 
 
 ## ⚠ Future Changes

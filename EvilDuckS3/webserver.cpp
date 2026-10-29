@@ -611,6 +611,7 @@ namespace webserver {
 
 void begin() {
   WiFi.mode(WIFI_AP);
+  WiFi.setTxPower(WIFI_POWER_11dBm); // Reduce Wi-Fi RF heat dissipation
   int hidden = settings::getHiddenAp() ? 1 : 0;
   WiFi.softAP(settings::getSSID().c_str(),
               settings::getPassword().c_str(),

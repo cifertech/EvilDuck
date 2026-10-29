@@ -21,6 +21,9 @@ static void applyIdleLedColor() {
     return;
   }
   uint32_t color = settings::getLedColor();
+  if (color == 0x000028) {
+    color = 0x00FF88; // Vibrant emerald / teal duck color
+  }
   led::setColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
 }
 
@@ -29,11 +32,9 @@ void setup() {
   debug::info("Booting EvilDuck...");
 
   led::begin();
-  led::setColor(40, 0, 0);
-  delay(120);
-  led::setColor(0, 40, 0);
-  delay(120);
-  led::setColor(0, 0, 40);
+  // Vibrant RGB rainbow cycle on plug-in:
+  led::rainbowCycle(1000);
+
   hid_backend::begin();
   keyboard_locale::begin();
   attackmode::begin();
@@ -52,6 +53,9 @@ void setup() {
       uint32_t delayMs = settings::pickAutorunDelayMs();
       if (delayMs == 0) delayMs = settings::getStealthMode() ? 8000 : 3000;
       debug::info("Autorun in " + String(delayMs) + "ms: " + s);
+      if (!settings::getDisableLed() && !settings::getStealthMode()) {
+        led::setColor(255, 140, 0); // Amber warning during autorun countdown
+      }
       delay(delayMs);
       duckscript::run(s);
     }

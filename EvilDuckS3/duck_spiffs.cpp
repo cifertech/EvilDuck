@@ -1,4 +1,4 @@
-#include "spiffs.h"
+#include "duck_spiffs.h"
 #include "debug.h"
 #include <SPIFFS.h>
 

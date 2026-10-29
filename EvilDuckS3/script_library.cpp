@@ -1,6 +1,6 @@
 #include "script_library.h"
 #include "storage.h"
-#include "spiffs.h"
+#include "duck_spiffs.h"
 #include <SPIFFS.h>
 
 struct ExampleScript {

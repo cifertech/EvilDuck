@@ -3,7 +3,7 @@
 #include "settings.h"
 #include "com.h"
 #include "debug.h"
-#include "spiffs.h"
+#include "duck_spiffs.h"
 #include "storage.h"
 #include "sd_card.h"
 #include "attackmode.h"

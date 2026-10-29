@@ -8,6 +8,9 @@
 #include "sd_card.h"
 #include "attackmode.h"
 #include "script_log.h"
+#include "led.h"
+#include "webserver.h"
+#include <WiFi.h>
 
 namespace {
 String lineBuffer;
@@ -91,6 +94,10 @@ void executeCommand(const String &raw) {
     s += "web_password=" + settings::getWebPassword() + "\n";
     s += "autorun_delay_min=" + String(settings::getAutorunDelayMin()) + "\n";
     s += "autorun_delay_max=" + String(settings::getAutorunDelayMax()) + "\n";
+    s += "brightness=" + String(settings::getLedBrightness()) + "\n";
+    s += "wifi_power=" + settings::getWifiPowerLevel() + " (" + String(settings::getWifiPower()) + ")\n";
+    s += "wifi_enabled=" + String(settings::getWifiEnabled() ? 1 : 0) + "\n";
+    s += "cpu_freq=" + String(settings::getCpuFreq()) + "MHz\n";
     out(s);
     return;
   }
@@ -119,6 +126,29 @@ void executeCommand(const String &raw) {
     else if (name == "hidden_ap") settings::setHiddenAp(value == "1" || equalsNoCase(value, "true"));
     else if (name == "disable_led") settings::setDisableLed(value == "1" || equalsNoCase(value, "true"));
     else if (name == "web_password") settings::setWebPassword(value);
+    else if (name == "brightness" || name == "led_brightness") {
+      int b = value.toInt();
+      settings::setLedBrightness(constrain(b, 0, 255));
+      led::setBrightness(settings::getLedBrightness());
+    } else if (name == "wifi_power" || name == "tx_power") {
+      settings::setWifiPowerLevel(value);
+      WiFi.setTxPower((wifi_power_t)settings::getWifiPower());
+    } else if (name == "wifi") {
+      bool en = (value == "1" || equalsNoCase(value, "on") || equalsNoCase(value, "true"));
+      settings::setWifiEnabled(en);
+      if (!en) {
+        WiFi.softAPdisconnect(true);
+        WiFi.mode(WIFI_OFF);
+        out("Wi-Fi turned OFF (cool / silent mode)");
+      } else {
+        webserver::begin();
+        out("Wi-Fi turned ON");
+      }
+    } else if (name == "cpu_freq") {
+      int f = value.toInt();
+      settings::setCpuFreq(f);
+      setCpuFrequencyMhz(settings::getCpuFreq());
+    }
     else if (name == "autorun_delay_min") {
       uint16_t maxv = settings::getAutorunDelayMax();
       settings::setAutorunDelay(static_cast<uint16_t>(value.toInt()), maxv);

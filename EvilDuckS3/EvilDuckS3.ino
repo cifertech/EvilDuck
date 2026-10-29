@@ -21,9 +21,6 @@ static void applyIdleLedColor() {
     return;
   }
   uint32_t color = settings::getLedColor();
-  if (color == 0x000028) {
-    color = 0x00FF88; // Vibrant emerald / teal duck color
-  }
   led::setColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
 }
 
@@ -31,9 +28,22 @@ void setup() {
   debug::begin();
   debug::info("Booting EvilDuck...");
 
+  settings::load();
+
+  // Thermal optimization: set power-saving CPU frequency (default 160MHz)
+  uint16_t freq = settings::getCpuFreq();
+  if (freq != 240) {
+    setCpuFrequencyMhz(freq);
+    debug::info("CPU Frequency: " + String(freq) + " MHz (eco mode)");
+  }
+
   led::begin();
-  // Vibrant RGB rainbow cycle on plug-in:
-  led::rainbowCycle(1000);
+  led::setBrightness(settings::getLedBrightness());
+
+  // Quick subtle rainbow boot sequence if LED enabled
+  if (!settings::getDisableLed() && !settings::getStealthMode()) {
+    led::rainbowCycle(600);
+  }
 
   hid_backend::begin();
   keyboard_locale::begin();
@@ -41,11 +51,14 @@ void setup() {
 
   storage::begin();
   script_library::installIfNeeded();
-  settings::load();
   applyIdleLedColor();
   cli::begin();
 
-  webserver::begin();
+  if (settings::getWifiEnabled()) {
+    webserver::begin();
+  } else {
+    debug::info("Wi-Fi disabled in settings (cool & silent mode)");
+  }
 
   if (settings::autorunEnabled()) {
     String s = settings::getAutorun();
@@ -66,5 +79,5 @@ void loop() {
   duckscript::update();
   com::update();
   cli::update();
-  delay(1);
+  delay(2);
 }

@@ -31,6 +31,7 @@ static Adafruit_NeoPixel strip2(LED_NUM_PIXELS, PINS[2], LED_NEOPIXEL_ORDER + NE
 static Adafruit_NeoPixel strip3(LED_NUM_PIXELS, PINS[3], LED_NEOPIXEL_ORDER + NEO_KHZ800);
 
 static Adafruit_NeoPixel* strips[] = { &strip0, &strip1, &strip2, &strip3 };
+static uint8_t currentBrightness = LED_BRIGHTNESS;
 
 static uint8_t corrected(uint8_t value, uint8_t scale) {
   uint16_t v = (static_cast<uint16_t>(value) * scale) / 255;
@@ -46,9 +47,21 @@ namespace led {
 void begin() {
   for (size_t p = 0; p < NUM_PINS; ++p) {
     strips[p]->begin();
-    strips[p]->setBrightness(LED_BRIGHTNESS);
+    strips[p]->setBrightness(currentBrightness);
     strips[p]->show();
   }
+}
+
+void setBrightness(uint8_t brightness) {
+  currentBrightness = brightness;
+  for (size_t p = 0; p < NUM_PINS; ++p) {
+    strips[p]->setBrightness(brightness);
+    strips[p]->show();
+  }
+}
+
+uint8_t getBrightness() {
+  return currentBrightness;
 }
 
 void setColor(int r, int g, int b) {
@@ -64,7 +77,7 @@ void setColor(int r, int g, int b) {
 }
 
 void rainbowCycle(uint16_t totalDurationMs) {
-  int steps = 60;
+  int steps = 50;
   int delayPerStep = totalDurationMs / steps;
   if (delayPerStep < 5) delayPerStep = 5;
   for (int step = 0; step < steps; ++step) {
@@ -86,18 +99,21 @@ bool enabled() { return true; }
 
 #else
 namespace led {
+static uint8_t currentBrightness = 20;
 void begin() {
   pinMode(LED_PIN_R, OUTPUT);
   pinMode(LED_PIN_G, OUTPUT);
   pinMode(LED_PIN_B, OUTPUT);
 }
+void setBrightness(uint8_t brightness) { currentBrightness = brightness; }
+uint8_t getBrightness() { return currentBrightness; }
 void setColor(int r, int g, int b) {
 #if LED_ANODE
   r = 255 - r; g = 255 - g; b = 255 - b;
 #endif
-  analogWrite(LED_PIN_R, r);
-  analogWrite(LED_PIN_G, g);
-  analogWrite(LED_PIN_B, b);
+  analogWrite(LED_PIN_R, (r * currentBrightness) / 255);
+  analogWrite(LED_PIN_G, (g * currentBrightness) / 255);
+  analogWrite(LED_PIN_B, (b * currentBrightness) / 255);
 }
 void rainbowCycle(uint16_t) {}
 bool enabled() { return true; }
@@ -108,6 +124,8 @@ bool enabled() { return true; }
 
 namespace led {
 void begin() {}
+void setBrightness(uint8_t) {}
+uint8_t getBrightness() { return 0; }
 void setColor(int, int, int) {}
 void rainbowCycle(uint16_t) {}
 bool enabled() { return false; }

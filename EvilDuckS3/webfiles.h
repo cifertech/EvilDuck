@@ -220,6 +220,28 @@ static const char SETTINGS_HTML[] PROGMEM = R"rawliteral(
           <span class="label">Channel</span>
           <input class="input mono" id="channel" type="number" min="1" max="13" />
         </label>
+        <label class="field">
+          <span class="label">Wi‑Fi Power / Thermal</span>
+          <select class="input" id="wifi_power">
+            <option value="low">Low (5 dBm) — Coolest & Desk Range</option>
+            <option value="med">Medium (11 dBm) — Balanced (Recommended)</option>
+            <option value="high">High (19.5 dBm) — Maximum Range</option>
+          </select>
+          <span class="hint">Lower power significantly reduces chip heat.</span>
+        </label>
+        <label class="field">
+          <span class="label">CPU Frequency</span>
+          <select class="input" id="cpu_freq">
+            <option value="80">80 MHz (Ultra Cool)</option>
+            <option value="160">160 MHz (Eco Mode — Recommended)</option>
+            <option value="240">240 MHz (Full Speed)</option>
+          </select>
+          <span class="hint">160 MHz keeps chip cool without sacrificing USB performance.</span>
+        </label>
+        <label class="field">
+          <span class="label"><input type="checkbox" id="wifi_enabled" checked /> Wi‑Fi AP Enabled</span>
+          <span class="hint">Uncheck to run in silent zero-RF mode.</span>
+        </label>
         <div class="actions">
           <button class="btn primary" onclick="saveSettings()">Save</button>
           <button class="btn ghost" onclick="loadSettings()">Reload</button>
@@ -236,6 +258,11 @@ static const char SETTINGS_HTML[] PROGMEM = R"rawliteral(
         <label class="field"><span class="label"><input type="checkbox" id="stealth" /> Stealth mode</span></label>
         <label class="field"><span class="label"><input type="checkbox" id="hidden_ap" /> Hidden AP (reboot)</span></label>
         <label class="field"><span class="label"><input type="checkbox" id="disable_led" /> Disable LED commands</span></label>
+        <label class="field">
+          <span class="label">RGB Brightness (0–255)</span>
+          <input class="input" id="led_brightness" type="range" min="0" max="255" value="20" oninput="document.getElementById('brightVal').textContent=this.value; scheduleBrightnessApply();" />
+          <span class="hint">Current: <span id="brightVal">20</span>. Lower brightness reduces chip heat.</span>
+        </label>
         <label class="field"><span class="label">Static LED color</span>
           <input class="input" id="led_color" type="color" value="#000028" />
           <span class="hint">Used when idle/ready. Running scripts show purple and errors show red.</span>
@@ -1023,7 +1050,14 @@ async function loadSettings(){
   if(document.getElementById('stealth')) document.getElementById('stealth').checked=!!s.stealth;
   if(document.getElementById('hidden_ap')) document.getElementById('hidden_ap').checked=!!s.hidden_ap;
   if(document.getElementById('disable_led')) document.getElementById('disable_led').checked=!!s.disable_led;
-  if(document.getElementById('led_color')) document.getElementById('led_color').value=s.led_color||'#000028';
+  if(document.getElementById('led_brightness')) {
+    document.getElementById('led_brightness').value = s.led_brightness || 20;
+    if(document.getElementById('brightVal')) document.getElementById('brightVal').textContent = s.led_brightness || 20;
+  }
+  if(document.getElementById('wifi_power')) document.getElementById('wifi_power').value = s.wifi_power || 'med';
+  if(document.getElementById('wifi_enabled')) document.getElementById('wifi_enabled').checked = s.wifi_enabled !== false;
+  if(document.getElementById('cpu_freq')) document.getElementById('cpu_freq').value = s.cpu_freq || 160;
+  if(document.getElementById('led_color')) document.getElementById('led_color').value=s.led_color||'#00FF88';
   if(document.getElementById('web_password')) document.getElementById('web_password').value=s.web_password||'';
   if(document.getElementById('autorun_delay_min')) document.getElementById('autorun_delay_min').value=s.autorun_delay_min||0;
   if(document.getElementById('autorun_delay_max')) document.getElementById('autorun_delay_max').value=s.autorun_delay_max||0;
@@ -1036,6 +1070,10 @@ async function saveSettings(){
   if(document.getElementById('stealth')) fd.append('stealth',document.getElementById('stealth').checked?'1':'0');
   if(document.getElementById('hidden_ap')) fd.append('hidden_ap',document.getElementById('hidden_ap').checked?'1':'0');
   if(document.getElementById('disable_led')) fd.append('disable_led',document.getElementById('disable_led').checked?'1':'0');
+  if(document.getElementById('led_brightness')) fd.append('led_brightness',document.getElementById('led_brightness').value);
+  if(document.getElementById('wifi_power')) fd.append('wifi_power',document.getElementById('wifi_power').value);
+  if(document.getElementById('wifi_enabled')) fd.append('wifi_enabled',document.getElementById('wifi_enabled').checked?'1':'0');
+  if(document.getElementById('cpu_freq')) fd.append('cpu_freq',document.getElementById('cpu_freq').value);
   if(document.getElementById('led_color')) fd.append('led_color',document.getElementById('led_color').value);
   if(document.getElementById('web_password')) fd.append('web_password',document.getElementById('web_password').value);
   if(document.getElementById('autorun_delay_min')) fd.append('autorun_delay_min',document.getElementById('autorun_delay_min').value);
@@ -1049,6 +1087,20 @@ function scheduleLedColorApply(){
   if(!el) return;
   clearTimeout(ledColorTimer);
   ledColorTimer=setTimeout(applyLedColor,150);
+}
+let brightTimer = null;
+function scheduleBrightnessApply(){
+  clearTimeout(brightTimer);
+  brightTimer = setTimeout(applyBrightness, 120);
+}
+async function applyBrightness(){
+  const el = document.getElementById('led_brightness');
+  if(!el) return;
+  const fd = new FormData();
+  fd.append('brightness', el.value);
+  try {
+    await fetch('/led', {method:'POST', body:fd, headers:duckHeaders()});
+  } catch(e){}
 }
 async function applyLedColor(){
   const el=document.getElementById('led_color');

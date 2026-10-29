@@ -263,6 +263,23 @@ static void handleSaveSettings(AsyncWebServerRequest *req) {
   if (req->hasParam("disable_led", true)) {
     settings::setDisableLed(req->getParam("disable_led", true)->value() == "1");
   }
+  if (req->hasParam("led_brightness", true)) {
+    int b = req->getParam("led_brightness", true)->value().toInt();
+    settings::setLedBrightness(constrain(b, 0, 255));
+    led::setBrightness(settings::getLedBrightness());
+  }
+  if (req->hasParam("wifi_power", true)) {
+    settings::setWifiPowerLevel(req->getParam("wifi_power", true)->value());
+    WiFi.setTxPower((wifi_power_t)settings::getWifiPower());
+  }
+  if (req->hasParam("wifi_enabled", true)) {
+    settings::setWifiEnabled(req->getParam("wifi_enabled", true)->value() == "1");
+  }
+  if (req->hasParam("cpu_freq", true)) {
+    int cf = req->getParam("cpu_freq", true)->value().toInt();
+    settings::setCpuFreq(cf);
+    setCpuFrequencyMhz(settings::getCpuFreq());
+  }
   if (req->hasParam("led_color", true)) {
     if (!settings::setLedColorHex(req->getParam("led_color", true)->value())) {
       req->send(400, "text/plain", "Invalid LED color");
@@ -298,6 +315,10 @@ static void handleGetSettings(AsyncWebServerRequest *req) {
   json += "\"stealth\":" + String(settings::getStealthMode() ? "true" : "false") + ",";
   json += "\"hidden_ap\":" + String(settings::getHiddenAp() ? "true" : "false") + ",";
   json += "\"disable_led\":" + String(settings::getDisableLed() ? "true" : "false") + ",";
+  json += "\"led_brightness\":" + String(settings::getLedBrightness()) + ",";
+  json += "\"wifi_power\":\"" + settings::getWifiPowerLevel() + "\",";
+  json += "\"wifi_enabled\":" + String(settings::getWifiEnabled() ? "true" : "false") + ",";
+  json += "\"cpu_freq\":" + String(settings::getCpuFreq()) + ",";
   json += "\"led_color\":\"" + settings::getLedColorHex() + "\",";
   json += "\"web_password\":\"" + settings::getWebPassword() + "\",";
   json += "\"autorun_delay_min\":" + String(settings::getAutorunDelayMin()) + ",";
@@ -409,23 +430,22 @@ static void handleStatus(AsyncWebServerRequest *req) {
 
 static void handleSetLed(AsyncWebServerRequest *req) {
   if (!checkAuth(req)) { sendAuthRequired(req); return; }
-  if (!req->hasParam("color", true)) {
-    req->send(400, "text/plain", "Missing color");
-    return;
+  if (req->hasParam("brightness", true)) {
+    int b = req->getParam("brightness", true)->value().toInt();
+    settings::setLedBrightness(constrain(b, 0, 255));
+    led::setBrightness(settings::getLedBrightness());
   }
-  if (!settings::setLedColorHex(req->getParam("color", true)->value())) {
-    req->send(400, "text/plain", "Invalid LED color");
-    return;
+  if (req->hasParam("color", true)) {
+    settings::setLedColorHex(req->getParam("color", true)->value());
   }
   settings::save();
   if (settings::getDisableLed()) {
     led::setColor(0, 0, 0);
-    req->send(200, "text/plain", "Saved (LED disabled)");
-    return;
+  } else if (!duckscript::running()) {
+    uint32_t color = settings::getLedColor();
+    led::setColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
   }
-  uint32_t color = settings::getLedColor();
-  led::setColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
-  req->send(200, "text/plain", "LED color saved");
+  req->send(200, "text/plain", "OK");
 }
 
 static bool loadScriptBody(const String &filename, String &body, String &err, int &httpCode) {
@@ -611,7 +631,8 @@ namespace webserver {
 
 void begin() {
   WiFi.mode(WIFI_AP);
-  WiFi.setTxPower(WIFI_POWER_11dBm); // Reduce Wi-Fi RF heat dissipation
+  WiFi.setSleep(true); // Power management: modem sleep
+  WiFi.setTxPower((wifi_power_t)settings::getWifiPower());
   int hidden = settings::getHiddenAp() ? 1 : 0;
   WiFi.softAP(settings::getSSID().c_str(),
               settings::getPassword().c_str(),

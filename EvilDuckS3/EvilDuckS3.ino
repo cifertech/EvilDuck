@@ -26,21 +26,14 @@ static void applyIdleLedColor() {
 
 void setup() {
   debug::begin();
-  debug::info("Booting EvilDuck...");
+  debug::info("Booting EvilDuck (Standard 240MHz Full Speed)...");
 
   settings::load();
-
-  // Thermal optimization: set power-saving CPU frequency (default 160MHz)
-  uint16_t freq = settings::getCpuFreq();
-  if (freq != 240) {
-    setCpuFrequencyMhz(freq);
-    debug::info("CPU Frequency: " + String(freq) + " MHz (eco mode)");
-  }
 
   led::begin();
   led::setBrightness(settings::getLedBrightness());
 
-  // Quick subtle rainbow boot sequence if LED enabled
+  // Subtle rainbow boot sequence if LED enabled
   if (!settings::getDisableLed() && !settings::getStealthMode()) {
     led::rainbowCycle(600);
   }
@@ -57,7 +50,7 @@ void setup() {
   if (settings::getWifiEnabled()) {
     webserver::begin();
   } else {
-    debug::info("Wi-Fi disabled in settings (cool & silent mode)");
+    debug::info("Wi-Fi disabled in settings");
   }
 
   if (settings::autorunEnabled()) {
@@ -79,5 +72,5 @@ void loop() {
   duckscript::update();
   com::update();
   cli::update();
-  delay(2);
+  delay(1);
 }

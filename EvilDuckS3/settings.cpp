@@ -21,7 +21,6 @@ static uint16_t autorun_delay_max = 0;
 
 static uint8_t wifi_power = 44; // 11 dBm default (WIFI_POWER_11dBm)
 static bool wifi_enabled = true;
-static uint16_t cpu_freq = 160;
 
 namespace settings {
 
@@ -42,13 +41,11 @@ void load() {
   autorun_delay_max = prefs.getUShort("ar_dly_max", 0);
   wifi_power = static_cast<uint8_t>(prefs.getUChar("wifi_power", 44));
   wifi_enabled = prefs.getBool("wifi_en", true);
-  cpu_freq = prefs.getUShort("cpu_freq", 160);
   prefs.end();
 
   if (ap_ssid.length() == 0) ap_ssid = WIFI_SSID;
   if (ap_password.length() < 8) ap_password = WIFI_PASSWORD;
   if (ap_channel < 1 || ap_channel > 13) ap_channel = 1;
-  if (cpu_freq != 80 && cpu_freq != 160 && cpu_freq != 240) cpu_freq = 160;
 }
 
 void save() {
@@ -68,7 +65,6 @@ void save() {
   prefs.putUShort("ar_dly_max", autorun_delay_max);
   prefs.putUChar("wifi_power", wifi_power);
   prefs.putBool("wifi_en", wifi_enabled);
-  prefs.putUShort("cpu_freq", cpu_freq);
   prefs.end();
 }
 
@@ -88,7 +84,6 @@ void reset() {
   autorun_delay_max = 0;
   wifi_power = 44;
   wifi_enabled = true;
-  cpu_freq = 160;
   save();
 }
 
@@ -185,10 +180,5 @@ void setWifiPowerLevel(const String &level) {
 
 bool getWifiEnabled() { return wifi_enabled; }
 void setWifiEnabled(bool on) { wifi_enabled = on; }
-
-uint16_t getCpuFreq() { return cpu_freq; }
-void setCpuFreq(uint16_t freq) {
-  if (freq == 80 || freq == 160 || freq == 240) cpu_freq = freq;
-}
 
 }

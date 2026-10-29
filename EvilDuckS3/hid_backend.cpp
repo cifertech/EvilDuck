@@ -187,6 +187,7 @@ bool pressNamedCombo(const String &keyName, uint8_t modifiers) {
 
 void releaseAll() {
   Keyboard.releaseAll();
+  delay(4);
 }
 
 void sendText(const String &text) {

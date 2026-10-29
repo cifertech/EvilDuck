@@ -275,11 +275,7 @@ static void handleSaveSettings(AsyncWebServerRequest *req) {
   if (req->hasParam("wifi_enabled", true)) {
     settings::setWifiEnabled(req->getParam("wifi_enabled", true)->value() == "1");
   }
-  if (req->hasParam("cpu_freq", true)) {
-    int cf = req->getParam("cpu_freq", true)->value().toInt();
-    settings::setCpuFreq(cf);
-    setCpuFrequencyMhz(settings::getCpuFreq());
-  }
+
   if (req->hasParam("led_color", true)) {
     if (!settings::setLedColorHex(req->getParam("led_color", true)->value())) {
       req->send(400, "text/plain", "Invalid LED color");
@@ -318,7 +314,6 @@ static void handleGetSettings(AsyncWebServerRequest *req) {
   json += "\"led_brightness\":" + String(settings::getLedBrightness()) + ",";
   json += "\"wifi_power\":\"" + settings::getWifiPowerLevel() + "\",";
   json += "\"wifi_enabled\":" + String(settings::getWifiEnabled() ? "true" : "false") + ",";
-  json += "\"cpu_freq\":" + String(settings::getCpuFreq()) + ",";
   json += "\"led_color\":\"" + settings::getLedColorHex() + "\",";
   json += "\"web_password\":\"" + settings::getWebPassword() + "\",";
   json += "\"autorun_delay_min\":" + String(settings::getAutorunDelayMin()) + ",";
@@ -631,7 +626,6 @@ namespace webserver {
 
 void begin() {
   WiFi.mode(WIFI_AP);
-  WiFi.setSleep(true); // Power management: modem sleep
   WiFi.setTxPower((wifi_power_t)settings::getWifiPower());
   int hidden = settings::getHiddenAp() ? 1 : 0;
   WiFi.softAP(settings::getSSID().c_str(),

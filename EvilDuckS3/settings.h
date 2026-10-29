@@ -36,13 +36,11 @@ namespace settings {
   void setAutorunDelay(uint16_t minMs, uint16_t maxMs);
   uint32_t pickAutorunDelayMs();
 
-  // Wi-Fi power and thermal optimization settings
+  // Wi-Fi Power & control
   uint8_t getWifiPower();
   void setWifiPower(uint8_t powerDb);
   String getWifiPowerLevel();
   void setWifiPowerLevel(const String &level);
   bool getWifiEnabled();
   void setWifiEnabled(bool on);
-  uint16_t getCpuFreq();
-  void setCpuFreq(uint16_t freq);
 }

@@ -178,6 +178,11 @@ static void loadNextLine() {
     String line = scriptFile.readStringUntil('\n');
     line.replace("\r", "");
     ++lineNumber;
+    String trimmed = line;
+    trimmed.trim();
+    if (!trimmed.length() || trimmed.startsWith("REM") || trimmed.startsWith("rem") || trimmed.startsWith("//")) {
+      continue;
+    }
     script_log::setLine(lineNumber, scriptRef.display);
 
     bool execute = false;

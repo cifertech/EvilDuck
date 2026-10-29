@@ -97,7 +97,6 @@ void executeCommand(const String &raw) {
     s += "brightness=" + String(settings::getLedBrightness()) + "\n";
     s += "wifi_power=" + settings::getWifiPowerLevel() + " (" + String(settings::getWifiPower()) + ")\n";
     s += "wifi_enabled=" + String(settings::getWifiEnabled() ? 1 : 0) + "\n";
-    s += "cpu_freq=" + String(settings::getCpuFreq()) + "MHz\n";
     out(s);
     return;
   }
@@ -144,10 +143,6 @@ void executeCommand(const String &raw) {
         webserver::begin();
         out("Wi-Fi turned ON");
       }
-    } else if (name == "cpu_freq") {
-      int f = value.toInt();
-      settings::setCpuFreq(f);
-      setCpuFrequencyMhz(settings::getCpuFreq());
     }
     else if (name == "autorun_delay_min") {
       uint16_t maxv = settings::getAutorunDelayMax();

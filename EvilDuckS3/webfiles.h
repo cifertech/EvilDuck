@@ -229,15 +229,7 @@ static const char SETTINGS_HTML[] PROGMEM = R"rawliteral(
           </select>
           <span class="hint">Lower power significantly reduces chip heat.</span>
         </label>
-        <label class="field">
-          <span class="label">CPU Frequency</span>
-          <select class="input" id="cpu_freq">
-            <option value="80">80 MHz (Ultra Cool)</option>
-            <option value="160">160 MHz (Eco Mode — Recommended)</option>
-            <option value="240">240 MHz (Full Speed)</option>
-          </select>
-          <span class="hint">160 MHz keeps chip cool without sacrificing USB performance.</span>
-        </label>
+
         <label class="field">
           <span class="label"><input type="checkbox" id="wifi_enabled" checked /> Wi‑Fi AP Enabled</span>
           <span class="hint">Uncheck to run in silent zero-RF mode.</span>
@@ -1056,7 +1048,6 @@ async function loadSettings(){
   }
   if(document.getElementById('wifi_power')) document.getElementById('wifi_power').value = s.wifi_power || 'med';
   if(document.getElementById('wifi_enabled')) document.getElementById('wifi_enabled').checked = s.wifi_enabled !== false;
-  if(document.getElementById('cpu_freq')) document.getElementById('cpu_freq').value = s.cpu_freq || 160;
   if(document.getElementById('led_color')) document.getElementById('led_color').value=s.led_color||'#00FF88';
   if(document.getElementById('web_password')) document.getElementById('web_password').value=s.web_password||'';
   if(document.getElementById('autorun_delay_min')) document.getElementById('autorun_delay_min').value=s.autorun_delay_min||0;
@@ -1073,7 +1064,6 @@ async function saveSettings(){
   if(document.getElementById('led_brightness')) fd.append('led_brightness',document.getElementById('led_brightness').value);
   if(document.getElementById('wifi_power')) fd.append('wifi_power',document.getElementById('wifi_power').value);
   if(document.getElementById('wifi_enabled')) fd.append('wifi_enabled',document.getElementById('wifi_enabled').checked?'1':'0');
-  if(document.getElementById('cpu_freq')) fd.append('cpu_freq',document.getElementById('cpu_freq').value);
   if(document.getElementById('led_color')) fd.append('led_color',document.getElementById('led_color').value);
   if(document.getElementById('web_password')) fd.append('web_password',document.getElementById('web_password').value);
   if(document.getElementById('autorun_delay_min')) fd.append('autorun_delay_min',document.getElementById('autorun_delay_min').value);

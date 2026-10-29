@@ -13,6 +13,7 @@
 #include "led.h"
 
 #include <WiFi.h>
+#include <DNSServer.h>
 #include <SPIFFS.h>
 #include <SD.h>
 #include <ESPAsyncWebServer.h>
@@ -20,6 +21,7 @@
 
 static AsyncWebServer server(80);
 static AsyncWebSocket ws("/ws");
+static DNSServer dnsServer;
 static File uploadFile;
 static bool uploadRejected = false;
 static bool fwUpdateOk = false;
@@ -575,6 +577,25 @@ static void onWsEvent(AsyncWebSocket *serverPtr, AsyncWebSocketClient *client,
 
 static void handleStatic(AsyncWebServerRequest *req) {
   String path = req->url();
+
+  // Captive portal detection probes (Android, iOS, Windows)
+  if (path == "/generate_204" || path == "/gen_204" ||
+      path == "/hotspot-detect.html" || path == "/canonical.html" ||
+      path == "/connecttest.txt" || path == "/ncsi.txt" ||
+      path == "/success.txt" || path == "/mobile/status.php") {
+    req->redirect("http://192.168.4.1/");
+    return;
+  }
+
+  // Redirect foreign host queries to local AP IP
+  String host = req->host();
+  int colon = host.indexOf(':');
+  if (colon >= 0) host = host.substring(0, colon);
+  if (host != "192.168.4.1" && host != "evilduck.local" && !SPIFFS.exists(path)) {
+    req->redirect("http://192.168.4.1/");
+    return;
+  }
+
   if (path == "/" || path == "/index.html" || path == "/index.htm") {
     req->send_P(200, "text/html", INDEX_HTML);
     return;
@@ -626,15 +647,19 @@ namespace webserver {
 
 void begin() {
   WiFi.mode(WIFI_AP);
-  WiFi.setTxPower((wifi_power_t)settings::getWifiPower());
+  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
   int hidden = settings::getHiddenAp() ? 1 : 0;
   WiFi.softAP(settings::getSSID().c_str(),
               settings::getPassword().c_str(),
               settings::getChannel(),
-              hidden);
+              hidden,
+              4);
+  WiFi.setTxPower((wifi_power_t)settings::getWifiPower());
 
+  dnsServer.start(53, "*", IPAddress(192, 168, 4, 1));
   debug::info("AP SSID: " + settings::getSSID());
   debug::info("AP IP: " + WiFi.softAPIP().toString());
+  debug::info("Captive Portal DNS started");
 
   server.on("/list", HTTP_GET, handleListScripts);
   server.on("/library", HTTP_GET, handleLibrary);

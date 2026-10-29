@@ -19,7 +19,7 @@ static String web_password = "";
 static uint16_t autorun_delay_min = 0;
 static uint16_t autorun_delay_max = 0;
 
-static uint8_t wifi_power = 44; // 11 dBm default (WIFI_POWER_11dBm)
+static uint8_t wifi_power = 78; // 19.5 dBm default (WIFI_POWER_19_5dBm)
 static bool wifi_enabled = true;
 
 namespace settings {
@@ -39,7 +39,8 @@ void load() {
   web_password = prefs.getString("web_pw", "");
   autorun_delay_min = prefs.getUShort("ar_dly_min", 0);
   autorun_delay_max = prefs.getUShort("ar_dly_max", 0);
-  wifi_power = static_cast<uint8_t>(prefs.getUChar("wifi_power", 44));
+  wifi_power = static_cast<uint8_t>(prefs.getUChar("wifi_power", 78));
+  if (wifi_power < 60) wifi_power = 78; // Upgrade underpowered radio settings
   wifi_enabled = prefs.getBool("wifi_en", true);
   prefs.end();
 
@@ -82,7 +83,7 @@ void reset() {
   web_password = "";
   autorun_delay_min = 0;
   autorun_delay_max = 0;
-  wifi_power = 44;
+  wifi_power = 78;
   wifi_enabled = true;
   save();
 }
@@ -172,10 +173,10 @@ void setWifiPowerLevel(const String &level) {
   String l = level;
   l.toLowerCase();
   l.trim();
-  if (l == "low" || l == "min") wifi_power = 20; // 5 dBm
-  else if (l == "med" || l == "medium" || l == "mid") wifi_power = 44; // 11 dBm
+  if (l == "low" || l == "min") wifi_power = 60; // 15 dBm
+  else if (l == "med" || l == "medium" || l == "mid") wifi_power = 74; // 18.5 dBm
   else if (l == "high" || l == "max") wifi_power = 78; // 19.5 dBm
-  else if (l.toInt() > 0) wifi_power = constrain(l.toInt(), 8, 84);
+  else if (l.toInt() > 0) wifi_power = constrain(l.toInt(), 50, 84);
 }
 
 bool getWifiEnabled() { return wifi_enabled; }

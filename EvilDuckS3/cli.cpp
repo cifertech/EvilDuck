@@ -1,4 +1,5 @@
 #include "cli.h"
+#include "thermal.h"
 #include "duckscript.h"
 #include "settings.h"
 #include "com.h"
@@ -52,7 +53,7 @@ void serialOut(const char *s) { Serial.println(s); }
 
 void printHelp() {
   out("CLI commands:");
-  out("  help, ram, version, settings, set, reset, status, log");
+  out("  help, ram, version, settings, set, reset, status, temp, log");
   out("  run <file.txt>, stop, send <duckscript-line>");
   out("  autorun <file.txt|off>");
   out("  mem, format, ls <path>, cat <file>");
@@ -163,11 +164,19 @@ void executeCommand(const String &raw) {
     out("Settings reset");
     return;
   }
+  if (equalsNoCase(cmd, "temp") || equalsNoCase(cmd, "temperature")) {
+    float t = thermal::getTemp();
+    String state = thermal::isThrottled() ? "THROTTLED (>70C)" : "NORMAL";
+    out("ESP32-S3 Core Temp: " + String(t, 1) + " C (" + String(t * 1.8f + 32.0f, 1) + " F) | Limit: 70.0 C | Status: " + state);
+    return;
+  }
   if (startsWithNoCase(cmd, "status")) {
     out(String("running=") + (duckscript::running() ? "1" : "0") +
         ", script=" + duckscript::runningScript() +
         ", line=" + String(duckscript::currentLine()) +
         ", autorun=" + (settings::autorunEnabled() ? settings::getAutorun() : String("off")) +
+        ", temp=" + String(thermal::getTemp(), 1) + "C" +
+        ", throttled=" + (thermal::isThrottled() ? "1" : "0") +
         ", sd=" + (storage::sdReady() ? "1" : "0") +
         ", hid=" + (attackmode::hidEnabled() ? "1" : "0") +
         ", storage_usb=" + (attackmode::storageEnabled() ? "1" : "0"));

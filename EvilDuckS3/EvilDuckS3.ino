@@ -14,6 +14,7 @@
 #include "led.h"
 #include "attackmode.h"
 #include "script_library.h"
+#include "thermal.h"
 
 static void applyIdleLedColor() {
   if (settings::getDisableLed()) {
@@ -46,6 +47,7 @@ void setup() {
   script_library::installIfNeeded();
   applyIdleLedColor();
   cli::begin();
+  thermal::begin();
 
   if (settings::getWifiEnabled()) {
     webserver::begin();
@@ -72,5 +74,6 @@ void loop() {
   duckscript::update();
   com::update();
   cli::update();
+  thermal::update();
   delay(1);
 }

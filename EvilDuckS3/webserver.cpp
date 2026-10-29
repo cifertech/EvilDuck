@@ -11,6 +11,7 @@
 #include "script_library.h"
 #include "attackmode.h"
 #include "led.h"
+#include "thermal.h"
 
 #include <WiFi.h>
 #include <DNSServer.h>
@@ -421,6 +422,10 @@ static void handleStatus(AsyncWebServerRequest *req) {
   json += attackmode::hidEnabled() ? "true" : "false";
   json += ",\"storage\":";
   json += attackmode::storageEnabled() ? "true" : "false";
+  json += ",\"temp\":";
+  json += String(thermal::getTemp(), 1);
+  json += ",\"throttled\":";
+  json += thermal::isThrottled() ? "true" : "false";
   json += "}";
   req->send(200, "application/json", json);
 }

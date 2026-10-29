@@ -42,14 +42,17 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <h2>Status</h2>
         <div class="row gap">
           <span id="chipRunning" class="chip">Checking…</span>
+          <span id="chipTemp" class="chip subtle">Temp: —</span>
           <span id="chipHID" class="chip subtle">HID</span>
           <span id="chipSD" class="chip subtle">SD</span>
           <span id="chipStorage" class="chip subtle">MSC</span>
           <span id="chipAP" class="chip subtle">AP</span>
         </div>
       </div>
+      <div id="thermalBanner" style="display:none; margin:10px 0 14px 0; padding:10px 14px; border-radius:8px; background:rgba(255,107,107,0.18); border:1px solid #ff6b6b; color:#ff6b6b; font-weight:600;">⚠️ Thermal Throttle Active: Core temp is high (>70°C). Reduced LED & RF power to protect hardware.</div>
       <div class="kv">
         <div class="k">SSID</div><div class="v mono" id="ssidVal">—</div>
+        <div class="k">Core Temp</div><div class="v mono" id="tempVal">—</div>
         <div class="k">Channel</div><div class="v mono" id="chVal">—</div>
         <div class="k">Autorun</div><div class="v mono" id="autorunVal">—</div>
         <div class="k">Running</div><div class="v mono" id="runLineVal">-</div>
@@ -912,6 +915,28 @@ async function refreshStatus(){
     if(runEl) runEl.textContent=s.running ? ((s.script||'?')+' @ line '+s.line) : '—';
     const chipSt=document.getElementById('chipStorage');
     if(chipSt) setChip(chipSt, s.storage?'MSC on':'MSC off', s.storage?'good':'subtle');
+
+    if(s.temp !== undefined) {
+      const tEl=document.getElementById('tempVal');
+      if(tEl) tEl.textContent=s.temp + ' °C' + (s.throttled ? ' (THROTTLED)' : '');
+      const chipT=document.getElementById('chipTemp');
+      if(chipT) {
+        if(s.throttled) {
+          setChip(chipT, s.temp + ' °C (HOT)', 'bad');
+        } else if(s.temp > 60) {
+          setChip(chipT, s.temp + ' °C', 'warn');
+        } else {
+          setChip(chipT, s.temp + ' °C', 'good');
+        }
+      }
+      const bEl=document.getElementById('thermalBanner');
+      if(bEl) {
+        bEl.style.display=s.throttled ? 'block' : 'none';
+        if(s.throttled) {
+          bEl.textContent='⚠️ Thermal Throttle Active: Core temperature reached ' + s.temp + ' °C (>70 °C)! Dimmed LED & reduced Wi-Fi RF power to cool down.';
+        }
+      }
+    }
   }catch(e){
     setChip(document.getElementById('chipRunning'), 'Offline', 'bad');
   }

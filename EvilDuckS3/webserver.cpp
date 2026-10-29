@@ -162,6 +162,11 @@ static void handleDeleteScript(AsyncWebServerRequest *req) {
 
 static void handleRunScript(AsyncWebServerRequest *req) {
   if (!checkAuth(req)) { sendAuthRequired(req); return; }
+  if (req->hasParam("stop") || (req->hasParam("s") && req->getParam("s")->value() == "stop")) {
+    duckscript::stop();
+    req->send(200, "text/plain", "Execution stopped");
+    return;
+  }
   if (req->hasParam("cmd")) {
     String cmd = req->getParam("cmd")->value();
     if (!cmd.length()) {
@@ -611,10 +616,6 @@ static void handleStatic(AsyncWebServerRequest *req) {
   }
   if (path == "/terminal.html") {
     req->send_P(200, "text/html", TERMINAL_HTML);
-    return;
-  }
-  if (path == "/credits.html") {
-    req->send_P(200, "text/html", CREDITS_HTML);
     return;
   }
   if (path == "/error404.html") {

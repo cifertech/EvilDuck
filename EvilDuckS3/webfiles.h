@@ -8,7 +8,7 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="color-scheme" content="dark light" />
-  <title>EvilDuck</title>
+  <title>EvilDuck Control Panel</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -17,26 +17,23 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
       <div class="logo" aria-hidden="true"></div>
       <div>
         <div class="title">EvilDuck</div>
-        <div class="subtitle">AP control panel</div>
+        <div class="subtitle">BadUSB Web Control</div>
       </div>
     </div>
     <nav class="nav">
-      <a class="navlink" href="/index.html">Home</a>
+      <a class="navlink active" href="/index.html">Dashboard</a>
       <a class="navlink" href="/settings.html">Settings</a>
       <a class="navlink" href="/terminal.html">Terminal</a>
-      <a class="navlink" href="/credits.html">Credits</a>
     </nav>
   </header>
 
-  <main class="tabshell">
-    <div class="tabbar" role="tablist" aria-label="Home sections">
-      <button class="tabbtn active" type="button" role="tab" aria-selected="true" aria-controls="tab-dashboard" data-tab="dashboard">Dashboard</button>
-      <button class="tabbtn" type="button" role="tab" aria-selected="false" aria-controls="tab-scripts" data-tab="scripts">Scripts</button>
-      <button class="tabbtn" type="button" role="tab" aria-selected="false" aria-controls="tab-library" data-tab="library">Library</button>
-      <button class="tabbtn" type="button" role="tab" aria-selected="false" aria-controls="tab-logs" data-tab="logs">Logs</button>
+  <main class="grid">
+    <!-- Thermal Warning Banner -->
+    <div id="thermalBanner" style="display:none; grid-column:1/-1; padding:12px 16px; border-radius:8px; background:rgba(255,80,80,0.18); border:1px solid #ff4d4d; color:#ff6b6b; font-weight:600;">
+      ⚠️ Thermal Throttle Active: Core temp is high (>70°C). Reduced LED & RF power to protect hardware.
     </div>
 
-    <section id="tab-dashboard" class="tabpanel active grid" role="tabpanel">
+    <!-- Device Status -->
     <section class="card span2">
       <div class="cardhead">
         <h2>Status</h2>
@@ -46,135 +43,111 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
           <span id="chipHID" class="chip subtle">HID</span>
           <span id="chipSD" class="chip subtle">SD</span>
           <span id="chipStorage" class="chip subtle">MSC</span>
-          <span id="chipAP" class="chip subtle">AP</span>
         </div>
       </div>
-      <div id="thermalBanner" style="display:none; margin:10px 0 14px 0; padding:10px 14px; border-radius:8px; background:rgba(255,107,107,0.18); border:1px solid #ff6b6b; color:#ff6b6b; font-weight:600;">⚠️ Thermal Throttle Active: Core temp is high (>70°C). Reduced LED & RF power to protect hardware.</div>
       <div class="kv">
-        <div class="k">SSID</div><div class="v mono" id="ssidVal">—</div>
+        <div class="k">SSID / Channel</div><div class="v mono"><span id="ssidVal">—</span> (Ch <span id="chVal">—</span>)</div>
         <div class="k">Core Temp</div><div class="v mono" id="tempVal">—</div>
-        <div class="k">Channel</div><div class="v mono" id="chVal">—</div>
-        <div class="k">Autorun</div><div class="v mono" id="autorunVal">—</div>
-        <div class="k">Running</div><div class="v mono" id="runLineVal">-</div>
-        <div class="k">Web UI password</div><div class="v"><input class="input mono" id="duckPw" type="password" placeholder="(if set in Settings)" onchange="saveDuckPw()" /></div>
+        <div class="k">Autorun Payload</div><div class="v mono" id="autorunVal">—</div>
+        <div class="k">Execution</div>
+        <div class="v mono">
+          <span id="runLineVal">—</span>
+          <button id="btnStop" class="btn small danger" style="display:none; margin-left:10px;" onclick="stopScript()">Stop</button>
+        </div>
+        <div class="k">Web UI Password</div><div class="v"><input class="input mono" id="duckPw" type="password" placeholder="(if set in Settings)" onchange="saveDuckPw()" /></div>
       </div>
       <div class="actions">
-        <button class="btn" onclick="refreshStatus()">Refresh</button>
-        <button class="btn ghost" onclick="loadList()">Refresh scripts</button>
+        <button class="btn" onclick="refreshStatus()">Refresh Status</button>
       </div>
     </section>
 
+    <!-- Quick Keystroke Line -->
     <section class="card">
-      <div class="cardhead"><h2>Quick command</h2></div>
+      <div class="cardhead"><h2>Quick Command</h2></div>
       <div class="stack">
         <label class="field">
-          <span class="label">Send one line</span>
-          <input class="input mono" id="line" placeholder='e.g. GUI r' />
+          <span class="label">Send keystroke line</span>
+          <input class="input mono" id="line" placeholder="e.g. GUI r or STRING Hello" onkeydown="if(event.key==='Enter')sendLine()" />
         </label>
-        <button class="btn" onclick="sendLine()">Send</button>
-        <div class="hint">For interactive CLI, use the <a href="/terminal.html">Terminal</a>.</div>
+        <button class="btn primary" onclick="sendLine()">Send Keystroke</button>
       </div>
     </section>
 
+    <!-- Autorun Configuration -->
     <section class="card">
-      <div class="cardhead"><h2>Autorun</h2></div>
+      <div class="cardhead"><h2>Autorun Payload</h2></div>
       <div class="stack">
         <label class="field">
-          <span class="label">Script name</span>
+          <span class="label">Script filename</span>
           <input class="input mono" id="autorun" placeholder="payload.txt (or empty to disable)" />
         </label>
-        <button class="btn" onclick="saveAutorun()">Save</button>
+        <button class="btn primary" onclick="saveAutorun()">Save Autorun</button>
       </div>
     </section>
-    </section>
 
-    <section id="tab-scripts" class="tabpanel grid" role="tabpanel" hidden>
-      <section class="card">
-        <div class="cardhead"><h2>Upload payload</h2></div>
-        <form id="uploadForm" class="stack">
-          <label class="field">
-            <span class="label">Script file</span>
-            <input class="input" type="file" id="file" name="file" accept=".txt,.duck" required />
-          </label>
-          <label class="field">
-            <span class="label">Destination</span>
-            <select class="input" id="uploadStorage" name="storage">
-              <option value="spiffs">SPIFFS</option>
-              <option value="sd">SD card</option>
-            </select>
-          </label>
-          <button class="btn primary" type="submit">Upload</button>
-          <div class="hint">Use <code class="mono">.txt</code> or <code class="mono">.duck</code>.</div>
+    <!-- Payload Scripts List & Direct Upload -->
+    <section class="card span2">
+      <div class="cardhead">
+        <h2>Payload Scripts</h2>
+        <div class="row gap">
+          <input class="input" id="filter" placeholder="Filter scripts…" oninput="renderList()" />
+          <button class="btn" onclick="loadList()">Reload</button>
+        </div>
+      </div>
+      <div class="stack" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <form id="uploadForm" class="row gap" style="align-items:center; flex-wrap:wrap;">
+          <input class="input" type="file" id="file" name="file" accept=".txt,.duck" required style="flex:1; min-width:180px;" />
+          <select class="input" id="uploadStorage" name="storage" style="width:130px;">
+            <option value="spiffs">SPIFFS</option>
+            <option value="sd">SD Card</option>
+          </select>
+          <button class="btn primary" type="submit">Upload Script</button>
         </form>
-      </section>
+      </div>
+      <ul id="scripts" class="list"></ul>
+    </section>
 
-      <section class="card span2">
-        <div class="cardhead">
-          <h2>Scripts</h2>
-          <div class="row gap">
-            <input class="input" id="filter" placeholder="Filter scripts…" oninput="renderList()" />
-            <button class="btn" onclick="loadList()">Reload</button>
-          </div>
+    <!-- Script Editor -->
+    <section class="card span2">
+      <div class="cardhead">
+        <h2>Script Editor</h2>
+        <div class="row gap">
+          <button class="btn ghost" onclick="newScript()">New</button>
+          <button class="btn" onclick="loadScript()">Reload</button>
+          <button class="btn primary" onclick="saveScript()">Save</button>
+          <button class="btn" onclick="runEditorScript()">Run</button>
         </div>
-        <ul id="scripts" class="list"></ul>
-      </section>
-
-      <section class="card span2">
-        <div class="cardhead">
-          <h2>Script editor</h2>
-          <div class="row gap">
-            <button class="btn ghost" onclick="newScript()">New</button>
-            <button class="btn" onclick="loadScript()">Load</button>
-            <button class="btn primary" onclick="saveScript()">Save</button>
-            <button class="btn" onclick="runEditorScript()">Run</button>
-          </div>
-        </div>
-        <div class="stack">
-          <label class="field">
+      </div>
+      <div class="stack">
+        <div class="row gap">
+          <label class="field" style="flex:1;">
             <span class="label">Filename</span>
-            <input class="input mono" id="editorName" placeholder="demos/01_hello_windows.txt" autocomplete="off" />
-            <span class="hint">Click a script in the list below to load it into the editor.</span>
+            <input class="input mono" id="editorName" placeholder="payload.txt" autocomplete="off" />
           </label>
-          <label class="field">
-            <span class="label">Save to</span>
+          <label class="field" style="width:160px;">
+            <span class="label">Storage</span>
             <select class="input" id="editorStorage">
-              <option value="spiffs">SPIFFS (internal)</option>
-              <option value="sd">SD card</option>
+              <option value="spiffs">SPIFFS (Internal)</option>
+              <option value="sd">SD Card</option>
             </select>
           </label>
-          <textarea class="editor mono" id="editorBody" rows="14" placeholder="Select a script from the list to edit it here."></textarea>
         </div>
-      </section>
+        <textarea class="editor mono" id="editorBody" rows="12" placeholder="Click 'Edit' on any script above or type DuckScript commands here..."></textarea>
+      </div>
     </section>
 
-    <section id="tab-library" class="tabpanel grid" role="tabpanel" hidden>
-      <section class="card span2">
-        <div class="cardhead"><h2>Script library</h2><button class="btn" onclick="loadLibraryList()">Refresh</button></div>
-        <p class="hint muted">Built-in examples plus scripts on SPIFFS (flash data/ with Sketch Data Upload).</p>
-        <ul id="library" class="list"></ul>
-      </section>
-    </section>
-
-    <section id="tab-logs" class="tabpanel grid" role="tabpanel" hidden>
-      <section class="card span2">
-        <div class="cardhead"><h2>Run log</h2><button class="btn ghost" onclick="refreshExecLog()">Refresh</button></div>
-        <pre id="execLog" class="log mono"></pre>
-      </section>
-
-      <section class="card span2">
-        <div class="cardhead">
-          <h2>Activity</h2>
-          <button class="btn ghost" onclick="clearLog()">Clear</button>
-        </div>
-        <pre id="log" class="log" aria-live="polite"></pre>
-      </section>
+    <!-- Activity Log -->
+    <section class="card span2">
+      <div class="cardhead">
+        <h2>Activity Log</h2>
+        <button class="btn ghost" onclick="clearLog()">Clear</button>
+      </div>
+      <pre id="log" class="log" aria-live="polite"></pre>
     </section>
   </main>
 
   <footer class="footer">
-    <span class="muted">EvilDuck</span>
-    <span class="muted">•</span>
-    <a class="muted" href="/credits.html">Credits</a>
+    <span class="muted">EvilDuck S3</span>
   </footer>
   <script src="/index.js"></script>
 </body>
@@ -329,59 +302,6 @@ static const char TERMINAL_HTML[] PROGMEM = R"rawliteral(
   </main>
 
   <script src="/terminal.js"></script>
-</body>
-</html>
-)rawliteral";
-
-static const char CREDITS_HTML[] PROGMEM = R"rawliteral(
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <meta name="color-scheme" content="dark light" />
-  <title>Credits</title>
-  <link rel="stylesheet" href="/style.css" />
-</head>
-<body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo" aria-hidden="true"></div>
-      <div>
-        <div class="title">Credits</div>
-        <div class="subtitle">Project info</div>
-      </div>
-    </div>
-    <nav class="nav">
-      <a class="navlink" href="/index.html">Home</a>
-      <a class="navlink" href="/settings.html">Settings</a>
-      <a class="navlink" href="/terminal.html">Terminal</a>
-    </nav>
-  </header>
-  <main class="grid">
-    <section class="card span2">
-      <div class="cardhead"><h2>EvilDuck S3</h2></div>
-      <p class="muted">
-        EvilDuck S3 is a hardware and software project built around the ESP32-S3.
-        It provides a Wi-Fi web UI for uploading, editing, and running Rubber Ducky-style scripts, plus terminal access and device settings.
-      </p>
-    </section>
-
-    <section class="card">
-      <div class="cardhead"><h2>Creator</h2></div>
-      <div class="stack">
-        <p class="muted">Created by <strong>CiferTech</strong>.</p>
-        <a class="linkcard" href="https://cifertech.net/" target="_blank" rel="noopener">
-          <span class="label">Website</span>
-          <span class="mono">cifertech.net</span>
-        </a>
-        <a class="linkcard" href="https://github.com/cifertech/EvilDuck" target="_blank" rel="noopener">
-          <span class="label">GitHub</span>
-          <span class="mono">github.com/cifertech/EvilDuck</span>
-        </a>
-      </div>
-    </section>
-  </main>
 </body>
 </html>
 )rawliteral";
@@ -610,6 +530,8 @@ h2{font-size:16px;letter-spacing:.2px}
 }
 .btn:hover{background: rgba(255,255,255,.10)}
 .btn:active{transform: translateY(1px)}
+.btn.danger{background:#ff4d4d;border-color:#ff4d4d;color:#fff;}
+.btn.danger:hover{background:#ff3333;}
 .btn.primary{
   border-color: rgba(255,95,21,.55);
   background: linear-gradient(135deg, rgba(255,95,21,.95), rgba(255,95,21,.62));
@@ -718,51 +640,110 @@ h2{font-size:16px;letter-spacing:.2px}
 )rawliteral";
 
 static const char INDEX_JS[] PROGMEM = R"rawliteral(
-const log=(m)=>{const e=document.getElementById('log');e.textContent+=m+"\n";e.scrollTop=e.scrollHeight;};
-const clearLog=()=>{const e=document.getElementById('log');e.textContent='';};
+const log=(m)=>{const e=document.getElementById('log');if(e){e.textContent+=m+"\n";e.scrollTop=e.scrollHeight;}};
+const clearLog=()=>{const e=document.getElementById('log');if(e)e.textContent='';};
 function esc(s){return s.replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));}
 let scriptsCache=[];
+let autorunUserEditing = false;
 
-function activateTab(name){
-  document.querySelectorAll('.tabbtn').forEach(btn=>{
-    const active=btn.dataset.tab===name;
-    btn.classList.toggle('active',active);
-    btn.setAttribute('aria-selected',active?'true':'false');
-  });
-  document.querySelectorAll('.tabpanel').forEach(panel=>{
-    const active=panel.id==='tab-'+name;
-    panel.classList.toggle('active',active);
-    panel.hidden=!active;
-  });
-  if(location.hash!=='#'+name) history.replaceState(null,'','#'+name);
+function setChip(el, text, cls){
+  if(!el) return;
+  el.className='chip '+(cls||'');
+  el.textContent=text;
 }
 
-function appendScriptRow(ul,name,{showRun=true,showDelete=true}={}){
+function saveDuckPw(){
+  const v=document.getElementById('duckPw')?.value||'';
+  sessionStorage.setItem('duckPw', v);
+}
+function duckHeaders(){
+  const pw=sessionStorage.getItem('duckPw')||'';
+  const h={};
+  if(pw) h['X-Duck-Password']=pw;
+  return h;
+}
+
+async function refreshStatus(){
+  try{
+    const r=await fetch('/status',{headers:duckHeaders()});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const s=await r.json();
+    const ssidEl=document.getElementById('ssidVal'); if(ssidEl) ssidEl.textContent=s.ssid||'—';
+    const chEl=document.getElementById('chVal'); if(chEl) chEl.textContent=(s.channel??'—');
+    const arVal=document.getElementById('autorunVal'); if(arVal) arVal.textContent=s.autorunEnabled ? (s.autorunScript||'') : 'disabled';
+
+    // FIX: Only update input if user is NOT currently typing or focused in it
+    const arInput=document.getElementById('autorun');
+    if(arInput && !autorunUserEditing && document.activeElement !== arInput){
+      arInput.value = s.autorunScript || '';
+    }
+
+    setChip(document.getElementById('chipRunning'), s.running?'Running':'Idle', s.running?'good':'subtle');
+    const chipSd=document.getElementById('chipSD');
+    if(chipSd) setChip(chipSd, s.sdReady?'SD OK':'No SD', s.sdReady?'good':'subtle');
+    const chipHid=document.getElementById('chipHID');
+    if(chipHid) setChip(chipHid, s.hid?'HID on':'HID off', s.hid?'good':'subtle');
+    const chipSt=document.getElementById('chipStorage');
+    if(chipSt) setChip(chipSt, s.storage?'MSC on':'MSC off', s.storage?'good':'subtle');
+
+    const runEl=document.getElementById('runLineVal');
+    if(runEl) runEl.textContent=s.running ? ((s.script||'?')+' @ line '+s.line) : 'Idle';
+    const btnStop=document.getElementById('btnStop');
+    if(btnStop) btnStop.style.display=s.running ? 'inline-block' : 'none';
+
+    // Thermal monitoring
+    if(s.temp !== undefined) {
+      const tEl=document.getElementById('tempVal');
+      if(tEl) tEl.textContent=s.temp + ' °C' + (s.throttled ? ' (THROTTLED)' : '');
+      const chipT=document.getElementById('chipTemp');
+      if(chipT) {
+        if(s.throttled) {
+          setChip(chipT, s.temp + ' °C (HOT)', 'bad');
+        } else if(s.temp > 60) {
+          setChip(chipT, s.temp + ' °C', 'warn');
+        } else {
+          setChip(chipT, s.temp + ' °C', 'good');
+        }
+      }
+      const bEl=document.getElementById('thermalBanner');
+      if(bEl) {
+        bEl.style.display=s.throttled ? 'block' : 'none';
+        if(s.throttled) {
+          bEl.textContent='⚠️ Thermal Throttle Active: Core temperature reached ' + s.temp + ' °C (>70 °C)! Dimmed LED & reduced Wi-Fi RF power to cool down.';
+        }
+      }
+    }
+  }catch(e){
+    setChip(document.getElementById('chipRunning'), 'Offline', 'bad');
+  }
+}
+
+function appendScriptRow(ul,name){
   const li=document.createElement('li');
   li.className='li';
   const code=document.createElement('code');
   code.className='mono li-name';
-  code.title=name;
+  code.title='Click to open in editor';
   code.textContent=name;
   code.onclick=()=>openEditor(name);
   const right=document.createElement('div');
-  right.className='right';
+  right.className='row gap';
+
   const bEdit=document.createElement('button');
-  bEdit.className='btn small'; bEdit.textContent='Edit';
+  bEdit.className='btn small ghost'; bEdit.textContent='Edit';
   bEdit.onclick=()=>openEditor(name);
   right.appendChild(bEdit);
-  if(showRun){
-    const bRun=document.createElement('button');
-    bRun.className='btn small primary'; bRun.textContent='Run';
-    bRun.onclick=()=>runScript(name);
-    right.appendChild(bRun);
-  }
-  if(showDelete){
-    const bDel=document.createElement('button');
-    bDel.className='btn small'; bDel.textContent='Del';
-    bDel.onclick=()=>delScript(name);
-    right.appendChild(bDel);
-  }
+
+  const bRun=document.createElement('button');
+  bRun.className='btn small primary'; bRun.textContent='Run';
+  bRun.onclick=()=>runScript(name);
+  right.appendChild(bRun);
+
+  const bDel=document.createElement('button');
+  bDel.className='btn small'; bDel.textContent='Del';
+  bDel.onclick=()=>delScript(name);
+  right.appendChild(bDel);
+
   li.append(code,right);
   ul.appendChild(li);
 }
@@ -770,12 +751,14 @@ function appendScriptRow(ul,name,{showRun=true,showDelete=true}={}){
 function renderList(){
   const q=(document.getElementById('filter')?.value||'').trim().toLowerCase();
   const ul=document.getElementById('scripts');
+  if(!ul) return;
   ul.innerHTML='';
   const list=scriptsCache.filter(s=>!q||s.toLowerCase().includes(q));
   if(!list.length){
     const empty=document.createElement('div');
     empty.className='muted';
-    empty.textContent=q?'No matches.':'No scripts on device. Flash data/ (Sketch Data Upload), upload a file, or enter Web UI password if set.';
+    empty.style.padding='8px 0';
+    empty.textContent=q?'No matches.':'No scripts on device. Upload a script above to begin.';
     ul.appendChild(empty);
     return;
   }
@@ -814,9 +797,6 @@ async function fetchScriptContent(name){
   r=await fetch('/script?s='+encodeURIComponent(name),{headers:duckHeaders()});
   text=await r.text();
   if(r.ok) return text;
-  r=await fetch('/library?s='+encodeURIComponent(name),{headers:duckHeaders()});
-  text=await r.text();
-  if(r.ok) return text;
   throw new Error(text||('HTTP '+r.status));
 }
 
@@ -833,8 +813,7 @@ async function loadScript(forcedName){
   try{
     const text=await fetchScriptContent(name);
     body.value=text;
-    const preview=text.split('\n')[0].slice(0,60);
-    log('Loaded: '+name+' | '+preview+(text.length>60?'...':''));
+    log('Loaded: '+name);
   }catch(e){
     body.value='REM Load failed: '+e.message+'\nREM File: '+name;
     log('Load failed: '+e.message);
@@ -844,7 +823,6 @@ async function loadScript(forcedName){
 async function openEditor(name){
   const sel=document.getElementById('editorStorage');
   if(sel) sel.value=(name.startsWith('sd:')||name.startsWith('SD:'))?'sd':'spiffs';
-  activateTab('scripts');
   await loadScript(name);
   document.getElementById('editorBody').scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -881,109 +859,25 @@ async function runEditorScript(){
   await runScript(name);
 }
 
-function setChip(el, text, cls){
-  if(!el) return;
-  el.className='chip '+(cls||'');
-  el.textContent=text;
-}
-
-function saveDuckPw(){
-  const v=document.getElementById('duckPw')?.value||'';
-  sessionStorage.setItem('duckPw', v);
-}
-function duckHeaders(){
-  const pw=sessionStorage.getItem('duckPw')||'';
-  const h={};
-  if(pw) h['X-Duck-Password']=pw;
-  return h;
-}
-
-async function refreshStatus(){
-  try{
-    const r=await fetch('/status',{headers:duckHeaders()});
-    const s=await r.json();
-    document.getElementById('ssidVal').textContent=s.ssid||'—';
-    document.getElementById('chVal').textContent=(s.channel??'—');
-    document.getElementById('autorunVal').textContent=s.autorunEnabled ? (s.autorunScript||'') : 'disabled';
-    document.getElementById('autorun').value=s.autorunScript||'';
-    setChip(document.getElementById('chipRunning'), s.running?'Running':'Idle', s.running?'good':'subtle');
-    const chipSd=document.getElementById('chipSD');
-    if(chipSd) setChip(chipSd, s.sdReady?'SD OK':'No SD', s.sdReady?'good':'subtle');
-    const chipHid=document.getElementById('chipHID');
-    if(chipHid) setChip(chipHid, s.hid?'HID on':'HID off', s.hid?'good':'subtle');
-    const runEl=document.getElementById('runLineVal');
-    if(runEl) runEl.textContent=s.running ? ((s.script||'?')+' @ line '+s.line) : '—';
-    const chipSt=document.getElementById('chipStorage');
-    if(chipSt) setChip(chipSt, s.storage?'MSC on':'MSC off', s.storage?'good':'subtle');
-
-    if(s.temp !== undefined) {
-      const tEl=document.getElementById('tempVal');
-      if(tEl) tEl.textContent=s.temp + ' °C' + (s.throttled ? ' (THROTTLED)' : '');
-      const chipT=document.getElementById('chipTemp');
-      if(chipT) {
-        if(s.throttled) {
-          setChip(chipT, s.temp + ' °C (HOT)', 'bad');
-        } else if(s.temp > 60) {
-          setChip(chipT, s.temp + ' °C', 'warn');
-        } else {
-          setChip(chipT, s.temp + ' °C', 'good');
-        }
-      }
-      const bEl=document.getElementById('thermalBanner');
-      if(bEl) {
-        bEl.style.display=s.throttled ? 'block' : 'none';
-        if(s.throttled) {
-          bEl.textContent='⚠️ Thermal Throttle Active: Core temperature reached ' + s.temp + ' °C (>70 °C)! Dimmed LED & reduced Wi-Fi RF power to cool down.';
-        }
-      }
-    }
-  }catch(e){
-    setChip(document.getElementById('chipRunning'), 'Offline', 'bad');
-  }
-}
-
-async function loadLibraryList(){
-  const ul=document.getElementById('library');
-  if(!ul) return;
-  ul.innerHTML='';
-  try{
-    const r=await fetch('/library?all=1',{headers:duckHeaders()});
-    if(!r.ok){log('Library: '+await r.text());return;}
-    const j=await r.json();
-    const items=[...new Set(Array.isArray(j)?j:(j.items||[]))];
-    if(!items.length){
-      const empty=document.createElement('li');
-      empty.className='muted';
-      empty.textContent='No scripts. Flash SPIFFS data or use built-in examples after reboot.';
-      ul.appendChild(empty);
-      return;
-    }
-    items.forEach(p=>appendScriptRow(ul,p,{showRun:true,showDelete:false}));
-  }catch(e){log('Library: '+e);}
-}
-
-async function refreshExecLog(){
-  const el=document.getElementById('execLog');
-  if(!el) return;
-  try{
-    const r=await fetch('/exec/log?format=text',{headers:duckHeaders()});
-    el.textContent=await r.text();
-    el.scrollTop=el.scrollHeight;
-  }catch(e){el.textContent=String(e);}
-}
-
 async function runScript(s){
   try{
     const r=await fetch('/run?s='+encodeURIComponent(s),{headers:duckHeaders()});
     const t=await r.text();
-    if(!r.ok){
-      log(`Run failed (${r.status}): ${t}`);
-      return;
-    }
-    log(t);
+    log((r.ok?'Run: ':'Run failed: ')+t);
     refreshStatus();
   }catch(e){
     log('Run error: '+(e?.message||String(e)));
+  }
+}
+
+async function stopScript(){
+  try{
+    const r=await fetch('/run?stop=1',{headers:duckHeaders()});
+    const t=await r.text();
+    log(t);
+    refreshStatus();
+  }catch(e){
+    log('Stop error: '+e);
   }
 }
 
@@ -995,24 +889,19 @@ async function delScript(s){
   refreshStatus();
 }
 
-document.getElementById('uploadForm').addEventListener('submit',async(e)=>{
-  e.preventDefault();
-  const f=document.getElementById('file').files[0];
-  if(!f){log('No file selected');return;}
-  const fd=new FormData();
-  fd.append('file', f);
-  const dest=document.getElementById('uploadStorage')?.value||'spiffs';
-  const r=await fetch('/upload?storage='+encodeURIComponent(dest),{method:'POST',body:fd,headers:duckHeaders()});
-  log(await r.text());
-  await loadList();
-});
-
 async function saveAutorun(){
+  const ar=document.getElementById('autorun');
+  const val=ar ? ar.value.trim() : '';
   const fd=new FormData();
-  fd.append('autorun_script',document.getElementById('autorun').value.trim());
-  const r=await fetch('/settings',{method:'POST',body:fd,headers:duckHeaders()});
-  log(await r.text());
-  refreshStatus();
+  fd.append('autorun_script', val);
+  try{
+    const r=await fetch('/settings',{method:'POST',body:fd,headers:duckHeaders()});
+    log(await r.text());
+    autorunUserEditing = false;
+    refreshStatus();
+  }catch(e){
+    log('Save error: '+e);
+  }
 }
 
 async function sendLine(){
@@ -1021,32 +910,43 @@ async function sendLine(){
   if(!line) return;
   const fd=new FormData();
   fd.append('line',line);
-  const r=await fetch('/send',{method:'POST',body:fd,headers:duckHeaders()});
-  log(await r.text());
-  el.value='';
+  try{
+    const r=await fetch('/send',{method:'POST',body:fd,headers:duckHeaders()});
+    log(await r.text());
+    el.value='';
+  }catch(e){
+    log('Send error: '+e);
+  }
 }
 
-(function(){
-  document.querySelectorAll('.tabbtn').forEach(btn=>{
-    btn.addEventListener('click',()=>activateTab(btn.dataset.tab));
-  });
-  const initial=(location.hash||'').replace('#','');
-  if(['dashboard','scripts','library','logs'].includes(initial)) activateTab(initial);
-  const p=document.getElementById('duckPw');
-  if(p) p.value=sessionStorage.getItem('duckPw')||'';
-  const en=document.getElementById('editorName');
-  if(en){
-    en.addEventListener('keydown',e=>{
-      if(e.key==='Enter'){e.preventDefault();loadScript();}
-    });
+document.getElementById('uploadForm')?.addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  const f=document.getElementById('file').files[0];
+  if(!f){log('No file selected');return;}
+  const fd=new FormData();
+  fd.append('file', f);
+  const dest=document.getElementById('uploadStorage')?.value||'spiffs';
+  try{
+    const r=await fetch('/upload?storage='+encodeURIComponent(dest),{method:'POST',body:fd,headers:duckHeaders()});
+    log(await r.text());
+    document.getElementById('file').value='';
+    await loadList();
+  }catch(err){
+    log('Upload error: '+err);
   }
-})();
-loadList();
-loadLibraryList();
+});
+
+// Setup autorun listeners to prevent polling overwrite while user types
+const arInput = document.getElementById('autorun');
+if(arInput){
+  arInput.addEventListener('focus', () => { autorunUserEditing = true; });
+  arInput.addEventListener('input', () => { autorunUserEditing = true; });
+  arInput.addEventListener('blur', () => { setTimeout(() => { autorunUserEditing = false; }, 300); });
+}
+
 refreshStatus();
-refreshExecLog();
-setInterval(refreshStatus, 1500);
-setInterval(refreshExecLog, 2000);
+loadList();
+setInterval(refreshStatus, 2000);
 )rawliteral";
 
 static const char SETTINGS_JS[] PROGMEM = R"rawliteral(

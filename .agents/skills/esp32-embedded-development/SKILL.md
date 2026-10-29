@@ -73,12 +73,21 @@ or resets unexpectedly with `rst:0xc (RTC_SW_CPU_RST)` or `rst:0x10 (RTCWDT_RTC_
 
 ---
 
-### Thermal Management
+### Thermal Management & Automatic Throttling
 - Operating temperature between **40°C and 55°C** is normal for an ESP32-S3 running dual 240 MHz cores with an active Wi-Fi SoftAP.
-- **To keep thermals cool:**
-  - Never run WS2812 RGB LEDs at maximum brightness (255); use `20` to `30`.
-  - Maintain Wi-Fi TX power at standard 18.5–19.5 dBm (`WIFI_POWER_19_5dBm`).
-  - Ensure the board is in an enclosure with ventilation holes or open air.
+- **Built-in Thermal Throttling (`thermal.h` / `thermal.cpp`):**
+  - Continuous on-die silicon sensor monitoring via `temperatureRead()`.
+  - **Throttle Trigger (>= 70°C):**
+    - Automatically dims RGB LED power to minimal level 5.
+    - Throttles Wi-Fi RF power from 19.5 dBm down to 11 dBm (`WIFI_POWER_11dBm`).
+    - Surfaces alert banner on the Web UI dashboard and flags `throttled: true` in `/status`.
+  - **Hysteresis Recovery (<= 65°C):**
+    - Automatically restores user-configured LED brightness and full Wi-Fi TX power once cooled.
+- **CLI Check:**
+  - Send `temp` in serial CLI to inspect live silicon temperature and throttle status:
+    ```text
+    ESP32-S3 Core Temp: 53.1 C (127.6 F) | Limit: 70.0 C | Status: NORMAL
+    ```
 
 ---
 

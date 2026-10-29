@@ -105,12 +105,14 @@ It adds a browser-based control panel over WiFi, SD card support for expanded st
  
 - **Single-chip design** — ESP32-S3 replaces the ATmega32U4 + ESP8266 combo
 - **WiFi access point** — browser-based control panel, no app required
-- **Addressable RGB LED** — WS2812 (2020 package), fully color-controllable in software
+- **Captive Portal DNS** — automatic captive redirection (`/generate_204`, `/hotspot-detect.html`) for instant phone setup
+- **Multi-pin Addressable RGB LED** — WS2812 driving pins 1, 48, 38, 21 with startup rainbow animation and dynamic brightness control
 - **SD card support** with expanded storage and USB mass storage mode
 - **Over-the-air firmware updates** via the web interface
-- **DuckScript interpreter** — executes scripts line by line as USB HID keystrokes
+- **DuckScript interpreter** — executes scripts line by line as USB HID keystrokes with optimized comment skipping
 - **Autorun** — plug in and a chosen script starts automatically
-- **Stealth mode** — adjusts timing and LED behavior
+- **Stealth & Power Control** — adjusts timing, LED behavior, and switchable Wi-Fi TX power
+- **AI Agent Skill Guide** — comprehensive development and troubleshooting runbook in [`SKILL.md`](./SKILL.md) and [`.agents/skills/esp32-embedded-development/SKILL.md`](./.agents/skills/esp32-embedded-development/SKILL.md)
 ### Hardware
  
 | Component | Detail |

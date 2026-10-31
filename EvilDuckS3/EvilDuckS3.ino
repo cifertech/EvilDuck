@@ -30,6 +30,7 @@ void setup() {
   debug::info("Booting EvilDuck (Standard 240MHz Full Speed)...");
 
   settings::load();
+  debug::info("USB Mode: " + settings::getUsbMode() + (settings::getUsbMode() == "BOOT" ? " (BIOS Boot Keyboard)" : " (Standard HID)"));
 
   led::begin();
   led::setBrightness(settings::getLedBrightness());

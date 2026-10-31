@@ -1,0 +1,8 @@
+REM Blinks onboard LED (if LED_ENABLED in config.h)
+LED 255 0 0
+DELAY 300
+LED 0 255 0
+DELAY 300
+LED 0 0 255
+DELAY 300
+LED OFF

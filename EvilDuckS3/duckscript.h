@@ -9,4 +9,6 @@ namespace duckscript {
   String runningScript();
   uint32_t currentLine();
   String lastError();
+  void scheduleRestart();
+  bool hasPendingRestart();
 }

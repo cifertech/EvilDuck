@@ -2,6 +2,7 @@
 #include "usb_msc.h"
 #include "script_log.h"
 #include "debug.h"
+#include "settings.h"
 
 static bool hidOn = true;
 static bool storageOn = false;
@@ -19,6 +20,12 @@ bool storageEnabled() { return storageOn; }
 void setHid(bool on) { hidOn = on; }
 
 void setStorage(bool on) {
+  if (on && settings::getUsbMode() == "BOOT") {
+    script_log::warn("ATTACKMODE STORAGE blocked in BOOT mode (BIOS keyboard)");
+    debug::error("ATTACKMODE STORAGE blocked: USB is in BOOT mode");
+    storageOn = false;
+    return;
+  }
   if (on == storageOn) return;
   storageOn = on;
   if (storageOn) {

@@ -1,0 +1,4 @@
+REM Write loot file on SD card (requires SD)
+VAR $msg = sd-capture-ok
+SAVE sd:loot.txt STRING $msg
+APPEND sd:loot.txt STRING \nappended

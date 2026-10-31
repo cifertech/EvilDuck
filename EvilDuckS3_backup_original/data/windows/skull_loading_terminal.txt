@@ -1,0 +1,167 @@
+REM Windows - open PowerShell and show skull loading animation
+REM Stop it with Ctrl+C or close the terminal window.
+DEFAULTDELAY 35
+GUI r
+DELAY 450
+STRING powershell -NoProfile
+ENTER
+DELAY 900
+STRINGLN $Host.UI.RawUI.WindowTitle = 'EvilDuck Skull Loader'
+STRINGLN [Console]::CursorVisible = $false
+STRINGLN $frames = @()
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /   /    \   \
+STRINGLN     |   |    |   |
+STRINGLN     |   |    |   |
+STRINGLN      \   '--'   /
+STRINGLN       '.      .'
+STRINGLN         '-..-'
+STRINGLN 
+STRINGLN          [          ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /   /    \   \
+STRINGLN     |  0      0  |
+STRINGLN     |      ^     |
+STRINGLN      \   .___.  /
+STRINGLN       '.      .'
+STRINGLN         '-..-'
+STRINGLN 
+STRINGLN          [#         ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /   /    \   \
+STRINGLN     |  0    0    |
+STRINGLN     |      ^     |
+STRINGLN      \   .___.  /
+STRINGLN       '.  | | .'
+STRINGLN         '-| |-'
+STRINGLN 
+STRINGLN          [##        ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /   /    \   \
+STRINGLN     |  0    0    |
+STRINGLN     |     /|\    |
+STRINGLN      \   .___.  /
+STRINGLN       '.  | | .'
+STRINGLN         '-| |-'
+STRINGLN 
+STRINGLN          [###       ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /  _/    \_  \
+STRINGLN     |  0    0    |
+STRINGLN     |     /|\    |
+STRINGLN      \  \___/   /
+STRINGLN       '.  | | .'
+STRINGLN         '-| |-'
+STRINGLN 
+STRINGLN          [####      ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /  _/    \_  \
+STRINGLN     |  @    @    |
+STRINGLN     |     /|\    |
+STRINGLN      \  \___/   /
+STRINGLN       '.  | | .'
+STRINGLN         '-| |-'
+STRINGLN 
+STRINGLN          [#####     ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /  _/    \_  \
+STRINGLN     |  @    @    |
+STRINGLN     |    _/|\_   |
+STRINGLN      \  \___/   /
+STRINGLN       '.  | | .'
+STRINGLN         '-| |-'
+STRINGLN 
+STRINGLN          [######    ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /  _/    \_  \
+STRINGLN     |  @    @    |
+STRINGLN     |    _/|\_   |
+STRINGLN      \  \___/   /
+STRINGLN       '.  | | .'
+STRINGLN        _'-| |-'_
+STRINGLN 
+STRINGLN          [#######   ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /  _/    \_  \
+STRINGLN     |  X    X    |
+STRINGLN     |    _/|\_   |
+STRINGLN      \  \___/   /
+STRINGLN       '.  | | .'
+STRINGLN        _'-| |-'_
+STRINGLN 
+STRINGLN          [########  ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /  _/    \_  \
+STRINGLN     |  X    X    |
+STRINGLN     |   __/|\__  |
+STRINGLN      \  \___/   /
+STRINGLN       '.  | | .'
+STRINGLN      __'-| |-'__
+STRINGLN 
+STRINGLN          [######### ]
+STRINGLN '@
+STRINGLN $frames += @'
+STRINGLN 
+STRINGLN        .-""""-.
+STRINGLN      .'  .--.  '.
+STRINGLN     /  _/    \_  \
+STRINGLN     |  X    X    |
+STRINGLN     |   __/|\__  |
+STRINGLN      \  \___/   /
+STRINGLN       '.  | | .'
+STRINGLN      __'-| |-'__
+STRINGLN 
+STRINGLN          [##########]
+STRINGLN '@
+STRINGLN try {
+STRINGLN   while ($true) {
+STRINGLN     foreach ($frame in $frames) {
+STRINGLN       Clear-Host
+STRINGLN       Write-Host $frame -ForegroundColor Green
+STRINGLN       Write-Host ''
+STRINGLN       Write-Host '        Loading...' -ForegroundColor DarkGreen
+STRINGLN       Start-Sleep -Milliseconds 120
+STRINGLN     }
+STRINGLN   }
+STRINGLN } finally {
+STRINGLN   [Console]::CursorVisible = $true
+STRINGLN }

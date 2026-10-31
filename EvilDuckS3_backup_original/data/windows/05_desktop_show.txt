@@ -1,0 +1,3 @@
+REM Show desktop (Win+D toggle)
+DEFAULTDELAY 50
+GUI d

@@ -1,0 +1,6 @@
+REM Launch Firefox via app launcher
+DEFAULTDELAY 100
+GUI
+DELAY 400
+STRING firefox
+ENTER

@@ -36,6 +36,7 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="btn-group">
           <span id="chipRunning" class="chip">Checking…</span>
           <span id="chipTemp" class="chip">Temp: —</span>
+          <span id="chipUsbMode" class="chip">USB: —</span>
           <span id="chipHID" class="chip">HID</span>
           <span id="chipSD" class="chip">SD</span>
         </div>
@@ -43,6 +44,11 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
       <div class="kv">
         <div class="k">SSID / Channel</div><div class="v mono"><span id="ssidVal">—</span> (Ch <span id="chVal">—</span>)</div>
         <div class="k">Core Temp</div><div class="v mono" id="tempVal">—</div>
+        <div class="k">USB Keyboard</div>
+        <div class="v mono">
+          <span id="usbModeVal">—</span>
+          <button id="btnToggleUsb" class="btn small" style="margin-left:8px;" onclick="toggleUsbMode()">Switch Mode</button>
+        </div>
         <div class="k">Autorun Payload</div><div class="v mono" id="autorunVal">—</div>
         <div class="k">Execution</div>
         <div class="v mono">
@@ -567,6 +573,15 @@ async function refreshStatus(){
       const bEl=document.getElementById('thermalBanner');
       if(bEl) bEl.style.display=s.throttled ? 'block' : 'none';
     }
+
+    if(s.usbMode !== undefined) {
+      const uEl=document.getElementById('usbModeVal');
+      if(uEl) uEl.textContent=s.usbMode + (s.usbMode==='BOOT' ? ' (BIOS Boot)' : ' (Standard HID)');
+      const cU=document.getElementById('chipUsbMode');
+      if(cU) setChip(cU, 'USB: '+s.usbMode, s.usbMode==='BOOT' ? 'good' : '');
+      const bT=document.getElementById('btnToggleUsb');
+      if(bT) bT.textContent='Switch to ' + (s.usbMode==='BOOT' ? 'NORMAL' : 'BOOT');
+    }
   }catch(e){
     setChip(document.getElementById('chipRunning'), 'Offline', 'bad');
   }
@@ -722,6 +737,24 @@ async function runScript(s){
     refreshStatus();
   }catch(e){
     log('Run error: '+(e?.message||String(e)));
+  }
+}
+
+async function toggleUsbMode(){
+  const chip=document.getElementById('chipUsbMode');
+  const cur=(chip?.textContent||'').includes('BOOT')?'BOOT':'NORMAL';
+  const target=cur==='BOOT'?'NORMAL':'BOOT';
+  if(!confirm(`Switch USB Keyboard to ${target} mode?\n\nNote: USB descriptors are fixed at enumeration. The device will save this setting and immediately REBOOT.`)) return;
+  try{
+    log(`Switching USB mode to ${target}...`);
+    const r=await fetch(`/usbmode?mode=${target}`,{method:'POST',headers:duckHeaders()});
+    const msg=await r.text();
+    log(msg);
+    setChip(document.getElementById('chipRunning'),'Rebooting…','warn');
+    const b=document.getElementById('btnToggleUsb');
+    if(b) b.disabled=true;
+  }catch(e){
+    log('Switch USB error: '+e);
   }
 }
 

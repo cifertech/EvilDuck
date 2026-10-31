@@ -43,4 +43,8 @@ namespace settings {
   void setWifiPowerLevel(const String &level);
   bool getWifiEnabled();
   void setWifiEnabled(bool on);
+
+  // USB Keyboard Mode (BOOT = BIOS boot protocol, NORMAL = standard HID)
+  String getUsbMode();
+  void setUsbMode(const String &mode);
 }

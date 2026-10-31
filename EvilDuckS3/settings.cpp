@@ -21,6 +21,7 @@ static uint16_t autorun_delay_max = 0;
 
 static uint8_t wifi_power = 78; // 19.5 dBm default (WIFI_POWER_19_5dBm)
 static bool wifi_enabled = true;
+static String usb_mode = "BOOT"; // Default to BOOT mode (strict BIOS boot keyboard)
 
 namespace settings {
 
@@ -42,6 +43,9 @@ void load() {
   wifi_power = static_cast<uint8_t>(prefs.getUChar("wifi_power", 78));
   if (wifi_power < 60) wifi_power = 78; // Upgrade underpowered radio settings
   wifi_enabled = prefs.getBool("wifi_en", true);
+  usb_mode = prefs.getString("usb_mode", "BOOT");
+  usb_mode.toUpperCase();
+  if (usb_mode != "NORMAL") usb_mode = "BOOT";
   prefs.end();
 
   if (ap_ssid.length() == 0) ap_ssid = WIFI_SSID;
@@ -66,6 +70,7 @@ void save() {
   prefs.putUShort("ar_dly_max", autorun_delay_max);
   prefs.putUChar("wifi_power", wifi_power);
   prefs.putBool("wifi_en", wifi_enabled);
+  prefs.putString("usb_mode", usb_mode);
   prefs.end();
 }
 
@@ -85,14 +90,22 @@ void reset() {
   autorun_delay_max = 0;
   wifi_power = 78;
   wifi_enabled = true;
+  usb_mode = "BOOT";
   save();
 }
 
 bool autorunEnabled() { return autorun_enabled; }
 String getAutorun() { return autorun_script_name; }
 void setAutorun(const String &scriptName) {
-  autorun_script_name = scriptName;
-  autorun_enabled = scriptName.length() > 0;
+  String s = scriptName;
+  s.trim();
+  if (s.equalsIgnoreCase("off") || s.equalsIgnoreCase("none") ||
+      s.equalsIgnoreCase("disable") || s.equalsIgnoreCase("disabled") ||
+      s.equalsIgnoreCase("clear") || s == """" || s == "''") {
+    s = "";
+  }
+  autorun_script_name = s;
+  autorun_enabled = s.length() > 0;
 }
 
 String getSSID() { return ap_ssid; }
@@ -181,5 +194,14 @@ void setWifiPowerLevel(const String &level) {
 
 bool getWifiEnabled() { return wifi_enabled; }
 void setWifiEnabled(bool on) { wifi_enabled = on; }
+
+String getUsbMode() { return usb_mode; }
+void setUsbMode(const String &mode) {
+  String m = mode;
+  m.toUpperCase();
+  m.trim();
+  if (m == "NORMAL") usb_mode = "NORMAL";
+  else usb_mode = "BOOT";
+}
 
 }

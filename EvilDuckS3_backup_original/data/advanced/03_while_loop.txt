@@ -1,0 +1,8 @@
+REM WHILE loop — runs until $flag cleared (no math in VAR)
+VAR $flag = 1
+WHILE $flag
+  STRING *
+  VAR $flag = 0
+ENDWHILE
+STRING done
+ENTER

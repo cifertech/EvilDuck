@@ -1,0 +1,8 @@
+REM Special keys smoke test (run in an empty editor)
+DEFAULTDELAY 80
+STRING test keys:
+TAB
+STRING tabbed
+ENTER
+STRING line2
+ESCAPE

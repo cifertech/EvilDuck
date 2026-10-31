@@ -1,0 +1,6 @@
+REM Open Windows Settings
+DEFAULTDELAY 100
+GUI r
+DELAY 400
+STRING ms-settings:
+ENTER

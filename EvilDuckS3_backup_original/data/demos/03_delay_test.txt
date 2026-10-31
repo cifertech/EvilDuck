@@ -1,0 +1,6 @@
+REM Types slowly then fast — tune DEFAULTDELAY
+DEFAULTDELAY 500
+STRING slow...
+DEFAULTDELAY 50
+STRING fast!
+ENTER

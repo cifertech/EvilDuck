@@ -1,0 +1,9 @@
+REM IF / ELSE / ENDIF
+VAR $os = win
+DEFAULTDELAY 80
+IF $os == win
+  STRING Windows branch
+ELSE
+  STRING Other branch
+ENDIF
+ENTER

@@ -8,7 +8,7 @@
 #include "USBMSC.h"
 #include "SD.h"
 
-static USBMSC MSC;
+static USBMSC *pMSC = nullptr;
 static bool mscActive = false;
 static File diskFile;
 static const char *DISK_IMG = "/sys/usb_disk.img";
@@ -62,22 +62,32 @@ static bool onStartStop(uint8_t power_condition, bool start, bool load_eject) {
 
 namespace usb_msc {
 
+void init() {
+  if (!pMSC) {
+    pMSC = new USBMSC();
+  }
+}
+
 bool begin() {
   if (mscActive) return true;
+  if (!pMSC) {
+    debug::error("MSC not initialized (disabled in current USB mode)");
+    return false;
+  }
   if (!SD.cardType()) {
     debug::error("MSC: no SD card");
     return false;
   }
   if (!ensureDiskImage()) return false;
   sectorCount = 8192;
-  MSC.vendorID("Evil");
-  MSC.productID("Duck");
-  MSC.productRevision("1.0");
-  MSC.mediaPresent(true);
-  MSC.onRead(onRead);
-  MSC.onWrite(onWrite);
-  MSC.onStartStop(onStartStop);
-  if (!MSC.begin(sectorCount, SECTOR_SIZE)) {
+  pMSC->vendorID("Evil");
+  pMSC->productID("Duck");
+  pMSC->productRevision("1.0");
+  pMSC->mediaPresent(true);
+  pMSC->onRead(onRead);
+  pMSC->onWrite(onWrite);
+  pMSC->onStartStop(onStartStop);
+  if (!pMSC->begin(sectorCount, SECTOR_SIZE)) {
     debug::error("MSC begin failed");
     return false;
   }
@@ -88,18 +98,20 @@ bool begin() {
 
 void end() {
   if (!mscActive) return;
-  MSC.end();
+  if (pMSC) pMSC->end();
   if (diskFile) diskFile.close();
   mscActive = false;
 }
 
 bool active() { return mscActive; }
 
-}
+} // namespace usb_msc
 
 #else
 
 namespace usb_msc {
+
+void init() {}
 
 bool begin() {
 #if SD_ENABLED
@@ -113,6 +125,6 @@ bool begin() {
 void end() {}
 bool active() { return false; }
 
-}
+} // namespace usb_msc
 
 #endif

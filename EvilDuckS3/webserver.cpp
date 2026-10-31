@@ -248,6 +248,12 @@ static void handleSaveSettings(AsyncWebServerRequest *req) {
 
   if (req->hasParam("autorun_script", true)) {
     String scriptName = req->getParam("autorun_script", true)->value();
+    scriptName.trim();
+    if (scriptName.equalsIgnoreCase("off") || scriptName.equalsIgnoreCase("none") ||
+        scriptName.equalsIgnoreCase("disable") || scriptName.equalsIgnoreCase("disabled") ||
+        scriptName.equalsIgnoreCase("clear") || scriptName == """" || scriptName == "''") {
+      scriptName = "";
+    }
     if (scriptName.length() && !isSafeScriptName(scriptName)) {
       req->send(400, "text/plain", "Invalid script name");
       return;
@@ -431,8 +437,30 @@ static void handleStatus(AsyncWebServerRequest *req) {
   json += String(thermal::getTemp(), 1);
   json += ",\"throttled\":";
   json += thermal::isThrottled() ? "true" : "false";
-  json += "}";
+  json += ",\"usbMode\":\"";
+  json += settings::getUsbMode();
+  json += "\"}";
   req->send(200, "application/json", json);
+}
+
+static void handleSetUsbMode(AsyncWebServerRequest *req) {
+  if (!checkAuth(req)) { sendAuthRequired(req); return; }
+  String mode;
+  if (req->hasParam("mode", true)) mode = req->getParam("mode", true)->value();
+  else if (req->hasParam("mode")) mode = req->getParam("mode")->value();
+  mode.toUpperCase();
+  mode.trim();
+  if (mode == "BOOT" || mode == "NORMAL") {
+    settings::setUsbMode(mode);
+    settings::save();
+    req->send(200, "text/plain", "USB Mode set to " + mode + ". Descriptors fixed at enumeration: device is rebooting now...");
+    xTaskCreate([](void *) {
+      vTaskDelay(pdMS_TO_TICKS(800));
+      ESP.restart();
+    }, "reboot", 2048, NULL, 1, NULL);
+    return;
+  }
+  req->send(400, "text/plain", "Invalid mode. Use BOOT or NORMAL.");
 }
 
 static void handleSetLed(AsyncWebServerRequest *req) {
@@ -677,6 +705,7 @@ void begin() {
   server.on("/delete", HTTP_GET, handleDeleteScript);
   server.on("/run", HTTP_GET, handleRunScript);
   server.on("/status", HTTP_GET, handleStatus);
+  server.on("/usbmode", HTTP_ANY, handleSetUsbMode);
   server.on("/led", HTTP_POST, handleSetLed);
   server.on("/settings", HTTP_GET, handleGetSettings);
   server.on("/settings", HTTP_POST, handleSaveSettings);

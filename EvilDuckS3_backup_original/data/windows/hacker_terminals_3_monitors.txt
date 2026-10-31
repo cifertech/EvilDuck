@@ -1,0 +1,6 @@
+REM Windows - open three hacker terminal graphics on each monitor
+DEFAULTDELAY 50
+GUI r
+DELAY 450
+STRING cmd /k C:\Users\CiferTech\Desktop\EvilDuckS3\scripts\windows\run_hacker_terminals.cmd
+ENTER

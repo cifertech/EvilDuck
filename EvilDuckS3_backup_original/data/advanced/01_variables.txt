@@ -1,0 +1,6 @@
+REM VAR and $ expansion in STRING
+VAR $name = EvilDuck
+VAR $ver = S3
+DEFAULTDELAY 80
+STRING Hello $name on $ver!
+ENTER

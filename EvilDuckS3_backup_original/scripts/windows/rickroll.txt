@@ -1,0 +1,19 @@
+REM ========================================================
+REM  EvilDuck S3 — Ultimate Rickroll Payload
+REM  Target : Windows 10 / 11
+REM  Action : Cranks Volume to 100% -> Opens Rick Astley
+REM           -> Windows Text-To-Speech Voice
+REM ========================================================
+
+DEFAULTDELAY 50
+
+REM Wait for USB HID enumeration to stabilize
+DELAY 1200
+
+REM Open Windows Run Dialog
+GUI r
+DELAY 400
+
+REM Execute compact PowerShell: Max volume, open video, and speak
+STRING powershell -NoP -W Hidden -c "$w=New-Object -c WScript.Shell;1..50|%{$w.SendKeys([char]175)};Start-Process 'https://youtu.be/dQw4w9WgXcQ';(New-Object -c SAPI.SpVoice).Speak('Never gonna give you up. Quack quack.')"
+ENTER

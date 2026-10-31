@@ -1,0 +1,9 @@
+REM Open Command Prompt (Win+R)
+DEFAULTDELAY 100
+GUI r
+DELAY 500
+STRING cmd
+ENTER
+DELAY 600
+STRING echo EvilDuck S3
+ENTER

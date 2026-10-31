@@ -1,0 +1,5 @@
+REM READ file into variable then type it (SPIFFS loot.txt)
+READ loot.txt $data
+DEFAULTDELAY 80
+STRING Contents: $data
+ENTER

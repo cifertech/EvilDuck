@@ -1,0 +1,4 @@
+REM Write loot file on SPIFFS
+VAR $tag = lab-test
+SAVE loot.txt STRING run:$tag at line end
+ENTER

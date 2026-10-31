@@ -1,0 +1,9 @@
+REM Start tmux session (if installed)
+DEFAULTDELAY 80
+GUI
+DELAY 400
+STRING terminal
+ENTER
+DELAY 600
+STRING tmux new -s duck
+ENTER

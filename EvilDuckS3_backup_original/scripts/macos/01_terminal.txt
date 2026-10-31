@@ -1,0 +1,9 @@
+REM Open Terminal (Spotlight)
+DEFAULTDELAY 100
+GUI SPACE
+DELAY 400
+STRING Terminal
+ENTER
+DELAY 800
+STRING echo EvilDuck on macOS
+ENTER

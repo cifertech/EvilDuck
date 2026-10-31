@@ -1,0 +1,6 @@
+REM Win+R run dialog
+DEFAULTDELAY 100
+GUI r
+DELAY 400
+STRING mspaint
+ENTER

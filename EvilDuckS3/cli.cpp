@@ -54,6 +54,7 @@ void serialOut(const char *s) { Serial.println(s); }
 void printHelp() {
   out("CLI commands:");
   out("  help, ram, version, settings, set, reset, status, temp, log");
+  out("  usbmode <boot|normal>, reboot");
   out("  run <file.txt>, stop, send <duckscript-line>");
   out("  autorun <file.txt|off>");
   out("  mem, format, ls <path>, cat <file>");
@@ -62,9 +63,9 @@ void printHelp() {
   out("  stream <file>, read, close");
   out("  sd, sdls, import <sd:name>, export <name>");
   out("  Paths: payload.txt (SPIFFS) or sd:payload.txt (SD card)");
-  out("Ducky extras: VAR, IF/ELSE, WHILE, SAVE/APPEND/READ, ATTACKMODE, LOCALE");
+  out("Ducky extras: VAR, IF/ELSE, WHILE, SAVE/APPEND/READ, ATTACKMODE, LOCALE, USBMODE");
   out("Stealth settings: stealth, hidden_ap, disable_led, web_password,");
-  out("  autorun_delay_min, autorun_delay_max (use: set <name> <value>)");
+  out("  autorun_delay_min, autorun_delay_max, usbmode (use: set <name> <value>)");
 }
 
 void executeCommand(const String &raw) {
@@ -89,6 +90,7 @@ void executeCommand(const String &raw) {
     s += "password=" + settings::getPassword() + "\n";
     s += "channel=" + String(settings::getChannel()) + "\n";
     s += "autorun=" + settings::getAutorun() + "\n";
+    s += "usb_mode=" + settings::getUsbMode() + "\n";
     s += "stealth=" + String(settings::getStealthMode() ? 1 : 0) + "\n";
     s += "hidden_ap=" + String(settings::getHiddenAp() ? 1 : 0) + "\n";
     s += "disable_led=" + String(settings::getDisableLed() ? 1 : 0) + "\n";
@@ -99,6 +101,26 @@ void executeCommand(const String &raw) {
     s += "wifi_power=" + settings::getWifiPowerLevel() + " (" + String(settings::getWifiPower()) + ")\n";
     s += "wifi_enabled=" + String(settings::getWifiEnabled() ? 1 : 0) + "\n";
     out(s);
+    return;
+  }
+  if (startsWithNoCase(cmd, "usbmode")) {
+    String rest = trimLine(cmd.substring(7));
+    rest.toUpperCase();
+    if (rest == "BOOT" || rest == "NORMAL") {
+      settings::setUsbMode(rest);
+      settings::save();
+      out("USB mode set to " + rest + ". Descriptors require re-enumeration. Rebooting in 500ms...");
+      delay(500);
+      ESP.restart();
+      return;
+    }
+    out("Current USB mode: " + settings::getUsbMode() + "\nUsage: usbmode <boot|normal>");
+    return;
+  }
+  if (startsWithNoCase(cmd, "reboot") || startsWithNoCase(cmd, "restart")) {
+    out("Rebooting device...");
+    delay(300);
+    ESP.restart();
     return;
   }
   if (startsWithNoCase(cmd, "log")) {
@@ -121,7 +143,19 @@ void executeCommand(const String &raw) {
     if (name == "ssid") settings::setSSID(value);
     else if (name == "password") settings::setPassword(value);
     else if (name == "channel") settings::setChannel(static_cast<uint8_t>(value.toInt()));
-    else if (name == "autorun") settings::setAutorun(value);
+    else if (name == "autorun") { settings::setAutorun(value); settings::save(); }
+    else if (name == "usbmode" || name == "usb_mode") {
+      String m = value; m.toUpperCase();
+      if (m == "BOOT" || m == "NORMAL") {
+        settings::setUsbMode(m);
+        settings::save();
+        out("> usbmode set to \"" + m + "\" (type 'reboot' to apply)");
+        return;
+      } else {
+        out("Invalid USB mode. Use 'boot' or 'normal'");
+        return;
+      }
+    }
     else if (name == "stealth") settings::setStealthMode(value == "1" || equalsNoCase(value, "true"));
     else if (name == "hidden_ap") settings::setHiddenAp(value == "1" || equalsNoCase(value, "true"));
     else if (name == "disable_led") settings::setDisableLed(value == "1" || equalsNoCase(value, "true"));
@@ -161,7 +195,7 @@ void executeCommand(const String &raw) {
   }
   if (startsWithNoCase(cmd, "reset")) {
     settings::reset();
-    out("Settings reset");
+    out("Settings reset to default");
     return;
   }
   if (equalsNoCase(cmd, "temp") || equalsNoCase(cmd, "temperature")) {
@@ -175,6 +209,7 @@ void executeCommand(const String &raw) {
         ", script=" + duckscript::runningScript() +
         ", line=" + String(duckscript::currentLine()) +
         ", autorun=" + (settings::autorunEnabled() ? settings::getAutorun() : String("off")) +
+        ", usb_mode=" + settings::getUsbMode() +
         ", temp=" + String(thermal::getTemp(), 1) + "C" +
         ", throttled=" + (thermal::isThrottled() ? "1" : "0") +
         ", sd=" + (storage::sdReady() ? "1" : "0") +

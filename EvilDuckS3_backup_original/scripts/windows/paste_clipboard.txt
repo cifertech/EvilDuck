@@ -1,0 +1,3 @@
+REM Windows — paste from clipboard
+DEFAULTDELAY 80
+CTRL v

@@ -1,13 +1,20 @@
 #include "hid_backend.h"
 #include "debug.h"
+#include "settings.h"
+#include "keyboard_locale.h"
 #include "USB.h"
 #include "USBHID.h"
 #include "USBHIDKeyboard.h"
+#include "class/hid/hid_device.h"
+#include "usb_msc.h"
 
-static USBHID HID;
-static USBHIDKeyboard Keyboard;
+// BIOS USB polling is slow on older host controllers (e.g. legacy HP BIOS / GRUB).
+// Key presses must be held ~60-100 ms before release, with a ~30 ms gap between keys.
+constexpr uint32_t BOOT_HOLD_MS = 80;
+constexpr uint32_t BOOT_RELEASE_GAP_MS = 30;
 
 namespace {
+
 constexpr uint8_t HID_A = 0x04;
 constexpr uint8_t HID_1 = 0x1E;
 constexpr uint8_t HID_ENTER = 0x28;
@@ -59,25 +66,108 @@ constexpr uint8_t HID_PRINTSCREEN = 0x46;
 constexpr uint8_t HID_SCROLLLOCK = 0x47;
 constexpr uint8_t HID_PAUSE = 0x48;
 
-void applyModifiers(uint8_t modifiers) {
-  if (modifiers & 0x01) Keyboard.pressRaw(0xE0);
-  if (modifiers & 0x02) Keyboard.pressRaw(0xE1);
-  if (modifiers & 0x04) Keyboard.pressRaw(0xE2);
-  if (modifiers & 0x08) Keyboard.pressRaw(0xE3);
-  if (modifiers & 0x10) Keyboard.pressRaw(0xE4);
-  if (modifiers & 0x20) Keyboard.pressRaw(0xE5);
-  if (modifiers & 0x40) Keyboard.pressRaw(0xE6);
-  if (modifiers & 0x80) Keyboard.pressRaw(0xE7);
+// Plain standard 8-byte boot keyboard report descriptor (no report ID)
+static const uint8_t boot_keyboard_report_desc[] = {
+  TUD_HID_REPORT_DESC_KEYBOARD()
+};
+
+// Strict Boot Protocol Keyboard (Class 3, SubClass 1, Protocol 1, no Report ID)
+class BootKeyboardDevice : public USBHIDDevice {
+public:
+  BootKeyboardDevice(USBHID *hid) : _hid(hid) {
+    memset(&_report, 0, sizeof(_report));
+    _hid->addDevice(this, sizeof(boot_keyboard_report_desc));
+  }
+
+  uint16_t _onGetDescriptor(uint8_t *dst) override {
+    memcpy(dst, boot_keyboard_report_desc, sizeof(boot_keyboard_report_desc));
+    return sizeof(boot_keyboard_report_desc);
+  }
+
+  void _onOutput(uint8_t report_id, const uint8_t *buffer, uint16_t len) override {
+    (void)report_id;
+    (void)buffer;
+    (void)len;
+  }
+
+  bool sendRawReport(uint8_t modifiers, const uint8_t *keys, uint8_t keyCount) {
+    _report.modifier = modifiers;
+    _report.reserved = 0;
+    memset(_report.keycode, 0, sizeof(_report.keycode));
+    for (uint8_t i = 0; i < keyCount && i < 6; ++i) {
+      _report.keycode[i] = keys[i];
+    }
+    return _hid->SendReport(0, &_report, sizeof(_report));
+  }
+
+  bool releaseAll() {
+    memset(&_report, 0, sizeof(_report));
+    return _hid->SendReport(0, &_report, sizeof(_report));
+  }
+
+  void pressKeyHeld(uint8_t keycode) {
+    for (int i = 0; i < 6; ++i) {
+      if (_report.keycode[i] == keycode) return;
+      if (_report.keycode[i] == 0) {
+        _report.keycode[i] = keycode;
+        break;
+      }
+    }
+    _hid->SendReport(0, &_report, sizeof(_report));
+  }
+
+  void setModifiers(uint8_t modifiers) {
+    _report.modifier |= modifiers;
+    _hid->SendReport(0, &_report, sizeof(_report));
+  }
+
+private:
+  USBHID *_hid;
+  hid_keyboard_report_t _report;
+};
+
+static bool isBootMode = true;
+static USBHID *pHid = nullptr;
+static BootKeyboardDevice *pBootKb = nullptr;
+static USBHIDKeyboard *pNormalKb = nullptr;
+
+void applyModifiersNormal(uint8_t modifiers) {
+  if (!pNormalKb) return;
+  if (modifiers & 0x01) pNormalKb->pressRaw(0xE0);
+  if (modifiers & 0x02) pNormalKb->pressRaw(0xE1);
+  if (modifiers & 0x04) pNormalKb->pressRaw(0xE2);
+  if (modifiers & 0x08) pNormalKb->pressRaw(0xE3);
+  if (modifiers & 0x10) pNormalKb->pressRaw(0xE4);
+  if (modifiers & 0x20) pNormalKb->pressRaw(0xE5);
+  if (modifiers & 0x40) pNormalKb->pressRaw(0xE6);
+  if (modifiers & 0x80) pNormalKb->pressRaw(0xE7);
 }
-}
+
+} // namespace
 
 namespace hid_backend {
 
 void begin() {
-  HID.begin();
-  Keyboard.begin();
-  USB.begin();
-  debug::info("USB HID started");
+  String mode = settings::getUsbMode();
+  mode.toUpperCase();
+
+  if (mode == "NORMAL") {
+    isBootMode = false;
+    debug::info("USB Mode: NORMAL (Standard HID Keyboard, fast timing)");
+    pHid = new USBHID(HID_ITF_PROTOCOL_NONE);
+    pNormalKb = new USBHIDKeyboard();
+    pHid->begin();
+    pNormalKb->begin();
+    usb_msc::init();
+    USB.begin();
+  } else {
+    isBootMode = true;
+    debug::info("USB Mode: BOOT (Strict BIOS Boot Keyboard: Class 3, SubClass 1, Protocol 1, EP 1)");
+    pHid = new USBHID(HID_ITF_PROTOCOL_KEYBOARD);
+    pBootKb = new BootKeyboardDevice(pHid);
+    pHid->begin();
+    USB.begin();
+  }
 }
 
 bool keyNameToHid(const String &input, uint8_t &outCode) {
@@ -158,19 +248,40 @@ bool keyNameToHid(const String &input, uint8_t &outCode) {
 }
 
 void pressModifier(uint8_t modMask) {
-  applyModifiers(modMask);
+  if (isBootMode) {
+    if (pBootKb) {
+      pBootKb->setModifiers(modMask);
+      delay(BOOT_HOLD_MS);
+    }
+  } else {
+    applyModifiersNormal(modMask);
+  }
 }
 
 void pressKeyHeld(uint8_t hidKeycode) {
-  Keyboard.pressRaw(hidKeycode);
+  if (isBootMode) {
+    if (pBootKb) {
+      pBootKb->pressKeyHeld(hidKeycode);
+      delay(BOOT_HOLD_MS);
+    }
+  } else {
+    if (pNormalKb) pNormalKb->pressRaw(hidKeycode);
+  }
 }
 
 void pressReport(uint8_t modifiers, const uint8_t *keys, uint8_t keyCount) {
-  applyModifiers(modifiers);
-  for (uint8_t i = 0; i < keyCount && i < 6; ++i) {
-    if (keys[i]) Keyboard.pressRaw(keys[i]);
+  if (isBootMode) {
+    if (pBootKb) {
+      pBootKb->sendRawReport(modifiers, keys, keyCount);
+      delay(BOOT_HOLD_MS);
+    }
+  } else {
+    applyModifiersNormal(modifiers);
+    for (uint8_t i = 0; i < keyCount && i < 6; ++i) {
+      if (keys[i] && pNormalKb) pNormalKb->pressRaw(keys[i]);
+    }
+    delay(5);
   }
-  delay(5);
 }
 
 void pressKeycode(uint8_t hidKeycode, uint8_t modifiers) {
@@ -186,15 +297,29 @@ bool pressNamedCombo(const String &keyName, uint8_t modifiers) {
 }
 
 void releaseAll() {
-  Keyboard.releaseAll();
+  if (isBootMode) {
+    if (pBootKb) {
+      pBootKb->releaseAll();
+      delay(BOOT_RELEASE_GAP_MS);
+    }
+  } else {
+    if (pNormalKb) {
+      pNormalKb->releaseAll();
+      delay(4);
+    }
+  }
 }
 
 void sendText(const String &text) {
-  Keyboard.print(text);
+  if (isBootMode) {
+    keyboard_locale::write(text);
+  } else {
+    if (pNormalKb) pNormalKb->print(text);
+  }
 }
 
 void sendTextLn(const String &text) {
-  Keyboard.print(text);
+  sendText(text);
   pressEnter();
 }
 
@@ -209,4 +334,4 @@ void pressArrowDown() { pressKeycode(HID_DOWN, 0); }
 void pressArrowLeft() { pressKeycode(HID_LEFT, 0); }
 void pressArrowRight() { pressKeycode(HID_RIGHT, 0); }
 
-}
+} // namespace hid_backend

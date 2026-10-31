@@ -13,10 +13,15 @@ static uint8_t ap_channel = 1;
 static bool stealth_mode = false;
 static bool hidden_ap = false;
 static bool disable_led = false;
-static uint32_t led_color = 0x000028;
+static uint8_t led_brightness = LED_BRIGHTNESS;
+static uint32_t led_color = 0x00FF88;
 static String web_password = "";
 static uint16_t autorun_delay_min = 0;
 static uint16_t autorun_delay_max = 0;
+
+static uint8_t wifi_power = 78; // 19.5 dBm default (WIFI_POWER_19_5dBm)
+static bool wifi_enabled = true;
+static String usb_mode = "BOOT"; // Default to BOOT mode (strict BIOS boot keyboard)
 
 namespace settings {
 
@@ -30,10 +35,17 @@ void load() {
   stealth_mode = prefs.getBool("stealth", false);
   hidden_ap = prefs.getBool("hidden_ap", false);
   disable_led = prefs.getBool("disable_led", false);
-  led_color = prefs.getUInt("led_color", 0x000028);
+  led_brightness = static_cast<uint8_t>(prefs.getUChar("led_bright", LED_BRIGHTNESS));
+  led_color = prefs.getUInt("led_color", 0x00FF88);
   web_password = prefs.getString("web_pw", "");
   autorun_delay_min = prefs.getUShort("ar_dly_min", 0);
   autorun_delay_max = prefs.getUShort("ar_dly_max", 0);
+  wifi_power = static_cast<uint8_t>(prefs.getUChar("wifi_power", 78));
+  if (wifi_power < 60) wifi_power = 78; // Upgrade underpowered radio settings
+  wifi_enabled = prefs.getBool("wifi_en", true);
+  usb_mode = prefs.getString("usb_mode", "BOOT");
+  usb_mode.toUpperCase();
+  if (usb_mode != "NORMAL") usb_mode = "BOOT";
   prefs.end();
 
   if (ap_ssid.length() == 0) ap_ssid = WIFI_SSID;
@@ -51,10 +63,14 @@ void save() {
   prefs.putBool("stealth", stealth_mode);
   prefs.putBool("hidden_ap", hidden_ap);
   prefs.putBool("disable_led", disable_led);
+  prefs.putUChar("led_bright", led_brightness);
   prefs.putUInt("led_color", led_color);
   prefs.putString("web_pw", web_password);
   prefs.putUShort("ar_dly_min", autorun_delay_min);
   prefs.putUShort("ar_dly_max", autorun_delay_max);
+  prefs.putUChar("wifi_power", wifi_power);
+  prefs.putBool("wifi_en", wifi_enabled);
+  prefs.putString("usb_mode", usb_mode);
   prefs.end();
 }
 
@@ -67,18 +83,29 @@ void reset() {
   stealth_mode = false;
   hidden_ap = false;
   disable_led = false;
-  led_color = 0x000028;
+  led_brightness = LED_BRIGHTNESS;
+  led_color = 0x00FF88;
   web_password = "";
   autorun_delay_min = 0;
   autorun_delay_max = 0;
+  wifi_power = 78;
+  wifi_enabled = true;
+  usb_mode = "BOOT";
   save();
 }
 
 bool autorunEnabled() { return autorun_enabled; }
 String getAutorun() { return autorun_script_name; }
 void setAutorun(const String &scriptName) {
-  autorun_script_name = scriptName;
-  autorun_enabled = scriptName.length() > 0;
+  String s = scriptName;
+  s.trim();
+  if (s.equalsIgnoreCase("off") || s.equalsIgnoreCase("none") ||
+      s.equalsIgnoreCase("disable") || s.equalsIgnoreCase("disabled") ||
+      s.equalsIgnoreCase("clear") || s == """" || s == "''") {
+    s = "";
+  }
+  autorun_script_name = s;
+  autorun_enabled = s.length() > 0;
 }
 
 String getSSID() { return ap_ssid; }
@@ -101,6 +128,10 @@ bool getHiddenAp() { return hidden_ap; }
 void setHiddenAp(bool on) { hidden_ap = on; }
 bool getDisableLed() { return disable_led; }
 void setDisableLed(bool on) { disable_led = on; }
+
+uint8_t getLedBrightness() { return led_brightness; }
+void setLedBrightness(uint8_t brightness) { led_brightness = brightness; }
+
 uint32_t getLedColor() { return led_color; }
 String getLedColorHex() {
   char buf[8];
@@ -138,6 +169,39 @@ void setAutorunDelay(uint16_t minMs, uint16_t maxMs) {
 uint32_t pickAutorunDelayMs() {
   if (autorun_delay_max <= autorun_delay_min) return autorun_delay_min;
   return autorun_delay_min + (esp_random() % (autorun_delay_max - autorun_delay_min + 1));
+}
+
+uint8_t getWifiPower() { return wifi_power; }
+void setWifiPower(uint8_t powerDb) {
+  if (powerDb >= 8 && powerDb <= 84) wifi_power = powerDb;
+}
+
+String getWifiPowerLevel() {
+  if (wifi_power <= 28) return "low";
+  if (wifi_power <= 52) return "med";
+  return "high";
+}
+
+void setWifiPowerLevel(const String &level) {
+  String l = level;
+  l.toLowerCase();
+  l.trim();
+  if (l == "low" || l == "min") wifi_power = 60; // 15 dBm
+  else if (l == "med" || l == "medium" || l == "mid") wifi_power = 74; // 18.5 dBm
+  else if (l == "high" || l == "max") wifi_power = 78; // 19.5 dBm
+  else if (l.toInt() > 0) wifi_power = constrain(l.toInt(), 50, 84);
+}
+
+bool getWifiEnabled() { return wifi_enabled; }
+void setWifiEnabled(bool on) { wifi_enabled = on; }
+
+String getUsbMode() { return usb_mode; }
+void setUsbMode(const String &mode) {
+  String m = mode;
+  m.toUpperCase();
+  m.trim();
+  if (m == "NORMAL") usb_mode = "NORMAL";
+  else usb_mode = "BOOT";
 }
 
 }

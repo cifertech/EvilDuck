@@ -1,0 +1,4 @@
+REM Repeat last STRING line 5 times
+DEFAULTDELAY 100
+STRING tick
+REPEAT 5

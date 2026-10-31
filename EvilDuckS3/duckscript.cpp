@@ -20,6 +20,7 @@ static uint32_t whileStartPos = 0;
 static uint32_t whileStartLine = 0;
 static String whileKey;
 static bool inWhile = false;
+static bool pendingRestart = false;
 
 static void loadNextLine();
 static void comDone();
@@ -141,6 +142,7 @@ bool run(const String &filename) {
   lineNumber = 0;
   skipBlock = false;
   inWhile = false;
+  pendingRestart = false;
   duck_vars::clear();
   script_log::clear();
   script_log::info("Started " + scriptRef.display);
@@ -159,6 +161,12 @@ void stop() {
   if (scriptFile) scriptFile.close();
   script_log::info("Stopped");
   setIdleColor();
+  if (pendingRestart) {
+    pendingRestart = false;
+    debug::info("Restarting ESP32 for USB mode change after script completion...");
+    delay(500);
+    ESP.restart();
+  }
 }
 
 void update() {}
@@ -167,6 +175,14 @@ bool running() { return active; }
 String runningScript() { return active ? scriptRef.display : String(); }
 uint32_t currentLine() { return lineNumber; }
 String lastError() { return lastErr; }
+
+void scheduleRestart() {
+  pendingRestart = true;
+}
+
+bool hasPendingRestart() {
+  return pendingRestart;
+}
 
 }
 
@@ -178,6 +194,11 @@ static void loadNextLine() {
     String line = scriptFile.readStringUntil('\n');
     line.replace("\r", "");
     ++lineNumber;
+    String trimmed = line;
+    trimmed.trim();
+    if (!trimmed.length() || trimmed.startsWith("REM") || trimmed.startsWith("rem") || trimmed.startsWith("//")) {
+      continue;
+    }
     script_log::setLine(lineNumber, scriptRef.display);
 
     bool execute = false;

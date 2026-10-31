@@ -1,0 +1,9 @@
+REM Windows — open Command Prompt
+DEFAULTDELAY 100
+GUI r
+DELAY 400
+STRING cmd
+ENTER
+DELAY 500
+STRING echo EvilDuck keyboard test
+ENTER

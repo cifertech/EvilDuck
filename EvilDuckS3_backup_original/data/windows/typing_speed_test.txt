@@ -1,0 +1,12 @@
+REM Windows — typing benchmark in Notepad
+DEFAULTDELAY 50
+GUI r
+DELAY 300
+STRING notepad
+ENTER
+DELAY 500
+STRING The quick brown fox jumps over the lazy dog.
+ENTER
+STRING 0123456789 !@#$%^&*()
+ENTER
+STRING EvilDuck typing test complete.

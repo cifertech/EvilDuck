@@ -18,7 +18,7 @@
 #define LED_TYPE_NEOPIXEL 1
 #define LED_PIN 1
 #define LED_NUM_PIXELS 1
-#define LED_BRIGHTNESS 40
+#define LED_BRIGHTNESS 20
 // WS2812-2020 packages commonly use RGB order. If pure colors are swapped,
 // test NEO_GRB, NEO_RGB, NEO_BRG, NEO_BGR, NEO_RBG, or NEO_GBR.
 #define LED_NEOPIXEL_ORDER NEO_GRB

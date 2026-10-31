@@ -1,13 +1,17 @@
 #include "cli.h"
+#include "thermal.h"
 #include "duckscript.h"
 #include "settings.h"
 #include "com.h"
 #include "debug.h"
-#include "spiffs.h"
+#include "duck_spiffs.h"
 #include "storage.h"
 #include "sd_card.h"
 #include "attackmode.h"
 #include "script_log.h"
+#include "led.h"
+#include "webserver.h"
+#include <WiFi.h>
 
 namespace {
 String lineBuffer;
@@ -49,7 +53,8 @@ void serialOut(const char *s) { Serial.println(s); }
 
 void printHelp() {
   out("CLI commands:");
-  out("  help, ram, version, settings, set, reset, status, log");
+  out("  help, ram, version, settings, set, reset, status, temp, log");
+  out("  usbmode <boot|normal>, reboot");
   out("  run <file.txt>, stop, send <duckscript-line>");
   out("  autorun <file.txt|off>");
   out("  mem, format, ls <path>, cat <file>");
@@ -58,9 +63,9 @@ void printHelp() {
   out("  stream <file>, read, close");
   out("  sd, sdls, import <sd:name>, export <name>");
   out("  Paths: payload.txt (SPIFFS) or sd:payload.txt (SD card)");
-  out("Ducky extras: VAR, IF/ELSE, WHILE, SAVE/APPEND/READ, ATTACKMODE, LOCALE");
+  out("Ducky extras: VAR, IF/ELSE, WHILE, SAVE/APPEND/READ, ATTACKMODE, LOCALE, USBMODE");
   out("Stealth settings: stealth, hidden_ap, disable_led, web_password,");
-  out("  autorun_delay_min, autorun_delay_max (use: set <name> <value>)");
+  out("  autorun_delay_min, autorun_delay_max, usbmode (use: set <name> <value>)");
 }
 
 void executeCommand(const String &raw) {
@@ -85,13 +90,37 @@ void executeCommand(const String &raw) {
     s += "password=" + settings::getPassword() + "\n";
     s += "channel=" + String(settings::getChannel()) + "\n";
     s += "autorun=" + settings::getAutorun() + "\n";
+    s += "usb_mode=" + settings::getUsbMode() + "\n";
     s += "stealth=" + String(settings::getStealthMode() ? 1 : 0) + "\n";
     s += "hidden_ap=" + String(settings::getHiddenAp() ? 1 : 0) + "\n";
     s += "disable_led=" + String(settings::getDisableLed() ? 1 : 0) + "\n";
     s += "web_password=" + settings::getWebPassword() + "\n";
     s += "autorun_delay_min=" + String(settings::getAutorunDelayMin()) + "\n";
     s += "autorun_delay_max=" + String(settings::getAutorunDelayMax()) + "\n";
+    s += "brightness=" + String(settings::getLedBrightness()) + "\n";
+    s += "wifi_power=" + settings::getWifiPowerLevel() + " (" + String(settings::getWifiPower()) + ")\n";
+    s += "wifi_enabled=" + String(settings::getWifiEnabled() ? 1 : 0) + "\n";
     out(s);
+    return;
+  }
+  if (startsWithNoCase(cmd, "usbmode")) {
+    String rest = trimLine(cmd.substring(7));
+    rest.toUpperCase();
+    if (rest == "BOOT" || rest == "NORMAL") {
+      settings::setUsbMode(rest);
+      settings::save();
+      out("USB mode set to " + rest + ". Descriptors require re-enumeration. Rebooting in 500ms...");
+      delay(500);
+      ESP.restart();
+      return;
+    }
+    out("Current USB mode: " + settings::getUsbMode() + "\nUsage: usbmode <boot|normal>");
+    return;
+  }
+  if (startsWithNoCase(cmd, "reboot") || startsWithNoCase(cmd, "restart")) {
+    out("Rebooting device...");
+    delay(300);
+    ESP.restart();
     return;
   }
   if (startsWithNoCase(cmd, "log")) {
@@ -114,11 +143,42 @@ void executeCommand(const String &raw) {
     if (name == "ssid") settings::setSSID(value);
     else if (name == "password") settings::setPassword(value);
     else if (name == "channel") settings::setChannel(static_cast<uint8_t>(value.toInt()));
-    else if (name == "autorun") settings::setAutorun(value);
+    else if (name == "autorun") { settings::setAutorun(value); settings::save(); }
+    else if (name == "usbmode" || name == "usb_mode") {
+      String m = value; m.toUpperCase();
+      if (m == "BOOT" || m == "NORMAL") {
+        settings::setUsbMode(m);
+        settings::save();
+        out("> usbmode set to \"" + m + "\" (type 'reboot' to apply)");
+        return;
+      } else {
+        out("Invalid USB mode. Use 'boot' or 'normal'");
+        return;
+      }
+    }
     else if (name == "stealth") settings::setStealthMode(value == "1" || equalsNoCase(value, "true"));
     else if (name == "hidden_ap") settings::setHiddenAp(value == "1" || equalsNoCase(value, "true"));
     else if (name == "disable_led") settings::setDisableLed(value == "1" || equalsNoCase(value, "true"));
     else if (name == "web_password") settings::setWebPassword(value);
+    else if (name == "brightness" || name == "led_brightness") {
+      int b = value.toInt();
+      settings::setLedBrightness(constrain(b, 0, 255));
+      led::setBrightness(settings::getLedBrightness());
+    } else if (name == "wifi_power" || name == "tx_power") {
+      settings::setWifiPowerLevel(value);
+      WiFi.setTxPower((wifi_power_t)settings::getWifiPower());
+    } else if (name == "wifi") {
+      bool en = (value == "1" || equalsNoCase(value, "on") || equalsNoCase(value, "true"));
+      settings::setWifiEnabled(en);
+      if (!en) {
+        WiFi.softAPdisconnect(true);
+        WiFi.mode(WIFI_OFF);
+        out("Wi-Fi turned OFF (cool / silent mode)");
+      } else {
+        webserver::begin();
+        out("Wi-Fi turned ON");
+      }
+    }
     else if (name == "autorun_delay_min") {
       uint16_t maxv = settings::getAutorunDelayMax();
       settings::setAutorunDelay(static_cast<uint16_t>(value.toInt()), maxv);
@@ -135,7 +195,13 @@ void executeCommand(const String &raw) {
   }
   if (startsWithNoCase(cmd, "reset")) {
     settings::reset();
-    out("Settings reset");
+    out("Settings reset to default");
+    return;
+  }
+  if (equalsNoCase(cmd, "temp") || equalsNoCase(cmd, "temperature")) {
+    float t = thermal::getTemp();
+    String state = thermal::isThrottled() ? "THROTTLED (>70C)" : "NORMAL";
+    out("ESP32-S3 Core Temp: " + String(t, 1) + " C (" + String(t * 1.8f + 32.0f, 1) + " F) | Limit: 70.0 C | Status: " + state);
     return;
   }
   if (startsWithNoCase(cmd, "status")) {
@@ -143,6 +209,9 @@ void executeCommand(const String &raw) {
         ", script=" + duckscript::runningScript() +
         ", line=" + String(duckscript::currentLine()) +
         ", autorun=" + (settings::autorunEnabled() ? settings::getAutorun() : String("off")) +
+        ", usb_mode=" + settings::getUsbMode() +
+        ", temp=" + String(thermal::getTemp(), 1) + "C" +
+        ", throttled=" + (thermal::isThrottled() ? "1" : "0") +
         ", sd=" + (storage::sdReady() ? "1" : "0") +
         ", hid=" + (attackmode::hidEnabled() ? "1" : "0") +
         ", storage_usb=" + (attackmode::storageEnabled() ? "1" : "0"));

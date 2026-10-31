@@ -1,0 +1,6 @@
+REM Windows — open default browser to a URL (change for your lab)
+DEFAULTDELAY 100
+GUI r
+DELAY 400
+STRING https://example.com
+ENTER

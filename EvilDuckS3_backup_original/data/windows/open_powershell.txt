@@ -1,0 +1,9 @@
+REM Windows — PowerShell from Run (Win10/11)
+DEFAULTDELAY 100
+GUI r
+DELAY 400
+STRING powershell
+ENTER
+DELAY 800
+STRING Write-Host "EvilDuck HID OK"
+ENTER

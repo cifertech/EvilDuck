@@ -1,0 +1,3 @@
+REM Open Task Manager (Ctrl+Shift+Esc)
+DEFAULTDELAY 80
+KEYCODE 0x04 0x05 0x29

@@ -1,0 +1,5 @@
+REM Keyboard only — disable MSC
+ATTACKMODE HID
+DELAY 200
+STRING HID only mode
+ENTER

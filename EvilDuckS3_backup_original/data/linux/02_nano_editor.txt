@@ -1,0 +1,14 @@
+REM Open nano with a one-line file (terminal must be focused)
+DEFAULTDELAY 100
+GUI
+DELAY 400
+STRING terminal
+ENTER
+DELAY 700
+STRING nano /tmp/duck.txt
+ENTER
+DELAY 500
+STRING EvilDuck was here
+CTRL o
+ENTER
+CTRL x

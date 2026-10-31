@@ -1,0 +1,3 @@
+REM Select all in focused window (Ctrl+A)
+DEFAULTDELAY 100
+KEYCODE 0x01 0x04

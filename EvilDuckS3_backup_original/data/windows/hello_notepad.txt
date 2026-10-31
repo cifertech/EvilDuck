@@ -1,0 +1,11 @@
+REM Windows — open Notepad and type a message
+DEFAULTDELAY 100
+DELAY 500
+GUI r
+DELAY 400
+STRING notepad
+ENTER
+DELAY 600
+STRING Hello from EvilDuck S3!
+ENTER
+STRING Lab use only.

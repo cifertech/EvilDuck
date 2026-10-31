@@ -9,6 +9,7 @@
 #include "attackmode.h"
 #include "script_log.h"
 #include "settings.h"
+#include "duckscript.h"
 #include <cstdlib>
 
 static com::cb_t cbDone = nullptr;
@@ -134,6 +135,19 @@ bool execLine(const String &raw, bool rememberLine = true) {
   }
   if (startsWithNoCase(line, "LOCALE ")) {
     return keyboard_locale::setLocaleByName(trimLine(line.substring(7)));
+  }
+  if (startsWithNoCase(line, "USBMODE ")) {
+    String mode = trimLine(line.substring(8));
+    mode.toUpperCase();
+    if (mode == "BOOT" || mode == "NORMAL") {
+      settings::setUsbMode(mode);
+      settings::save();
+      script_log::info("USB mode set to " + mode + " (reboot pending after script)");
+      duckscript::scheduleRestart();
+      return true;
+    }
+    script_log::error("Invalid USBMODE: " + mode + " (use BOOT or NORMAL)");
+    return false;
   }
   if (startsWithNoCase(line, "LED ")) {
     if (settings::getDisableLed()) return true;

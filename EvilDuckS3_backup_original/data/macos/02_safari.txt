@@ -1,0 +1,6 @@
+REM Open Safari via Spotlight
+DEFAULTDELAY 100
+GUI SPACE
+DELAY 400
+STRING Safari
+ENTER

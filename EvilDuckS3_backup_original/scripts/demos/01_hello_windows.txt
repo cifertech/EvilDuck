@@ -1,0 +1,9 @@
+REM Opens Notepad and types a message (Windows)
+DEFAULTDELAY 100
+GUI r
+DELAY 600
+STRING notepad
+ENTER
+DELAY 800
+STRING Hello from EvilDuck S3!
+ENTER

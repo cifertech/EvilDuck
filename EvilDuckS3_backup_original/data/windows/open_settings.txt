@@ -1,0 +1,4 @@
+REM Windows — Settings app
+DEFAULTDELAY 80
+GUI i
+DELAY 600

@@ -1,0 +1,5 @@
+REM Windows — select all + copy in focused text field
+DEFAULTDELAY 80
+CTRL a
+DELAY 100
+CTRL c

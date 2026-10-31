@@ -14,6 +14,7 @@
 #include "led.h"
 #include "attackmode.h"
 #include "script_library.h"
+#include "thermal.h"
 
 static void applyIdleLedColor() {
   if (settings::getDisableLed()) {
@@ -26,25 +27,34 @@ static void applyIdleLedColor() {
 
 void setup() {
   debug::begin();
-  debug::info("Booting EvilDuck...");
+  debug::info("Booting EvilDuck (Standard 240MHz Full Speed)...");
+
+  settings::load();
+  debug::info("USB Mode: " + settings::getUsbMode() + (settings::getUsbMode() == "BOOT" ? " (BIOS Boot Keyboard)" : " (Standard HID)"));
 
   led::begin();
-  led::setColor(40, 0, 0);
-  delay(120);
-  led::setColor(0, 40, 0);
-  delay(120);
-  led::setColor(0, 0, 40);
+  led::setBrightness(settings::getLedBrightness());
+
+  // Subtle rainbow boot sequence if LED enabled
+  if (!settings::getDisableLed() && !settings::getStealthMode()) {
+    led::rainbowCycle(600);
+  }
+
   hid_backend::begin();
   keyboard_locale::begin();
   attackmode::begin();
 
   storage::begin();
   script_library::installIfNeeded();
-  settings::load();
   applyIdleLedColor();
   cli::begin();
+  thermal::begin();
 
-  webserver::begin();
+  if (settings::getWifiEnabled()) {
+    webserver::begin();
+  } else {
+    debug::info("Wi-Fi disabled in settings");
+  }
 
   if (settings::autorunEnabled()) {
     String s = settings::getAutorun();
@@ -52,6 +62,9 @@ void setup() {
       uint32_t delayMs = settings::pickAutorunDelayMs();
       if (delayMs == 0) delayMs = settings::getStealthMode() ? 8000 : 3000;
       debug::info("Autorun in " + String(delayMs) + "ms: " + s);
+      if (!settings::getDisableLed() && !settings::getStealthMode()) {
+        led::setColor(255, 140, 0); // Amber warning during autorun countdown
+      }
       delay(delayMs);
       duckscript::run(s);
     }
@@ -62,5 +75,6 @@ void loop() {
   duckscript::update();
   com::update();
   cli::update();
+  thermal::update();
   delay(1);
 }

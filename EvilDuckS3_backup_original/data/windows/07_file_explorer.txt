@@ -1,0 +1,3 @@
+REM Open File Explorer (Win+E)
+DEFAULTDELAY 80
+GUI e

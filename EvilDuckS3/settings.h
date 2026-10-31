@@ -23,6 +23,8 @@ namespace settings {
   void setHiddenAp(bool on);
   bool getDisableLed();
   void setDisableLed(bool on);
+  uint8_t getLedBrightness();
+  void setLedBrightness(uint8_t brightness);
   uint32_t getLedColor();
   String getLedColorHex();
   void setLedColor(uint32_t color);
@@ -33,4 +35,16 @@ namespace settings {
   uint16_t getAutorunDelayMax();
   void setAutorunDelay(uint16_t minMs, uint16_t maxMs);
   uint32_t pickAutorunDelayMs();
+
+  // Wi-Fi Power & control
+  uint8_t getWifiPower();
+  void setWifiPower(uint8_t powerDb);
+  String getWifiPowerLevel();
+  void setWifiPowerLevel(const String &level);
+  bool getWifiEnabled();
+  void setWifiEnabled(bool on);
+
+  // USB Keyboard Mode (BOOT = BIOS boot protocol, NORMAL = standard HID)
+  String getUsbMode();
+  void setUsbMode(const String &mode);
 }

@@ -1,0 +1,3 @@
+REM Lock Windows workstation (Win+L)
+DEFAULTDELAY 50
+GUI l

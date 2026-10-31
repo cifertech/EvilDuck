@@ -1,0 +1,5 @@
+REM Switch keyboard layout to German then type umlauts
+LOCALE DE
+DEFAULTDELAY 100
+STRING Gruesse von EvilDuck - ae oe ue ss
+ENTER

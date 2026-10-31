@@ -11,8 +11,10 @@
 #include "script_library.h"
 #include "attackmode.h"
 #include "led.h"
+#include "thermal.h"
 
 #include <WiFi.h>
+#include <DNSServer.h>
 #include <SPIFFS.h>
 #include <SD.h>
 #include <ESPAsyncWebServer.h>
@@ -20,6 +22,7 @@
 
 static AsyncWebServer server(80);
 static AsyncWebSocket ws("/ws");
+static DNSServer dnsServer;
 static File uploadFile;
 static bool uploadRejected = false;
 static bool fwUpdateOk = false;
@@ -159,6 +162,11 @@ static void handleDeleteScript(AsyncWebServerRequest *req) {
 
 static void handleRunScript(AsyncWebServerRequest *req) {
   if (!checkAuth(req)) { sendAuthRequired(req); return; }
+  if (req->hasParam("stop") || (req->hasParam("s") && req->getParam("s")->value() == "stop")) {
+    duckscript::stop();
+    req->send(200, "text/plain", "Execution stopped");
+    return;
+  }
   if (req->hasParam("cmd")) {
     String cmd = req->getParam("cmd")->value();
     if (!cmd.length()) {
@@ -240,6 +248,12 @@ static void handleSaveSettings(AsyncWebServerRequest *req) {
 
   if (req->hasParam("autorun_script", true)) {
     String scriptName = req->getParam("autorun_script", true)->value();
+    scriptName.trim();
+    if (scriptName.equalsIgnoreCase("off") || scriptName.equalsIgnoreCase("none") ||
+        scriptName.equalsIgnoreCase("disable") || scriptName.equalsIgnoreCase("disabled") ||
+        scriptName.equalsIgnoreCase("clear") || scriptName == """" || scriptName == "''") {
+      scriptName = "";
+    }
     if (scriptName.length() && !isSafeScriptName(scriptName)) {
       req->send(400, "text/plain", "Invalid script name");
       return;
@@ -263,6 +277,19 @@ static void handleSaveSettings(AsyncWebServerRequest *req) {
   if (req->hasParam("disable_led", true)) {
     settings::setDisableLed(req->getParam("disable_led", true)->value() == "1");
   }
+  if (req->hasParam("led_brightness", true)) {
+    int b = req->getParam("led_brightness", true)->value().toInt();
+    settings::setLedBrightness(constrain(b, 0, 255));
+    led::setBrightness(settings::getLedBrightness());
+  }
+  if (req->hasParam("wifi_power", true)) {
+    settings::setWifiPowerLevel(req->getParam("wifi_power", true)->value());
+    WiFi.setTxPower((wifi_power_t)settings::getWifiPower());
+  }
+  if (req->hasParam("wifi_enabled", true)) {
+    settings::setWifiEnabled(req->getParam("wifi_enabled", true)->value() == "1");
+  }
+
   if (req->hasParam("led_color", true)) {
     if (!settings::setLedColorHex(req->getParam("led_color", true)->value())) {
       req->send(400, "text/plain", "Invalid LED color");
@@ -298,6 +325,9 @@ static void handleGetSettings(AsyncWebServerRequest *req) {
   json += "\"stealth\":" + String(settings::getStealthMode() ? "true" : "false") + ",";
   json += "\"hidden_ap\":" + String(settings::getHiddenAp() ? "true" : "false") + ",";
   json += "\"disable_led\":" + String(settings::getDisableLed() ? "true" : "false") + ",";
+  json += "\"led_brightness\":" + String(settings::getLedBrightness()) + ",";
+  json += "\"wifi_power\":\"" + settings::getWifiPowerLevel() + "\",";
+  json += "\"wifi_enabled\":" + String(settings::getWifiEnabled() ? "true" : "false") + ",";
   json += "\"led_color\":\"" + settings::getLedColorHex() + "\",";
   json += "\"web_password\":\"" + settings::getWebPassword() + "\",";
   json += "\"autorun_delay_min\":" + String(settings::getAutorunDelayMin()) + ",";
@@ -403,29 +433,54 @@ static void handleStatus(AsyncWebServerRequest *req) {
   json += attackmode::hidEnabled() ? "true" : "false";
   json += ",\"storage\":";
   json += attackmode::storageEnabled() ? "true" : "false";
-  json += "}";
+  json += ",\"temp\":";
+  json += String(thermal::getTemp(), 1);
+  json += ",\"throttled\":";
+  json += thermal::isThrottled() ? "true" : "false";
+  json += ",\"usbMode\":\"";
+  json += settings::getUsbMode();
+  json += "\"}";
   req->send(200, "application/json", json);
+}
+
+static void handleSetUsbMode(AsyncWebServerRequest *req) {
+  if (!checkAuth(req)) { sendAuthRequired(req); return; }
+  String mode;
+  if (req->hasParam("mode", true)) mode = req->getParam("mode", true)->value();
+  else if (req->hasParam("mode")) mode = req->getParam("mode")->value();
+  mode.toUpperCase();
+  mode.trim();
+  if (mode == "BOOT" || mode == "NORMAL") {
+    settings::setUsbMode(mode);
+    settings::save();
+    req->send(200, "text/plain", "USB Mode set to " + mode + ". Descriptors fixed at enumeration: device is rebooting now...");
+    xTaskCreate([](void *) {
+      vTaskDelay(pdMS_TO_TICKS(800));
+      ESP.restart();
+    }, "reboot", 2048, NULL, 1, NULL);
+    return;
+  }
+  req->send(400, "text/plain", "Invalid mode. Use BOOT or NORMAL.");
 }
 
 static void handleSetLed(AsyncWebServerRequest *req) {
   if (!checkAuth(req)) { sendAuthRequired(req); return; }
-  if (!req->hasParam("color", true)) {
-    req->send(400, "text/plain", "Missing color");
-    return;
+  if (req->hasParam("brightness", true)) {
+    int b = req->getParam("brightness", true)->value().toInt();
+    settings::setLedBrightness(constrain(b, 0, 255));
+    led::setBrightness(settings::getLedBrightness());
   }
-  if (!settings::setLedColorHex(req->getParam("color", true)->value())) {
-    req->send(400, "text/plain", "Invalid LED color");
-    return;
+  if (req->hasParam("color", true)) {
+    settings::setLedColorHex(req->getParam("color", true)->value());
   }
   settings::save();
   if (settings::getDisableLed()) {
     led::setColor(0, 0, 0);
-    req->send(200, "text/plain", "Saved (LED disabled)");
-    return;
+  } else if (!duckscript::running()) {
+    uint32_t color = settings::getLedColor();
+    led::setColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
   }
-  uint32_t color = settings::getLedColor();
-  led::setColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
-  req->send(200, "text/plain", "LED color saved");
+  req->send(200, "text/plain", "OK");
 }
 
 static bool loadScriptBody(const String &filename, String &body, String &err, int &httpCode) {
@@ -560,6 +615,25 @@ static void onWsEvent(AsyncWebSocket *serverPtr, AsyncWebSocketClient *client,
 
 static void handleStatic(AsyncWebServerRequest *req) {
   String path = req->url();
+
+  // Captive portal detection probes (Android, iOS, Windows)
+  if (path == "/generate_204" || path == "/gen_204" ||
+      path == "/hotspot-detect.html" || path == "/canonical.html" ||
+      path == "/connecttest.txt" || path == "/ncsi.txt" ||
+      path == "/success.txt" || path == "/mobile/status.php") {
+    req->redirect("http://192.168.4.1/");
+    return;
+  }
+
+  // Redirect foreign host queries to local AP IP
+  String host = req->host();
+  int colon = host.indexOf(':');
+  if (colon >= 0) host = host.substring(0, colon);
+  if (host != "192.168.4.1" && host != "evilduck.local" && !SPIFFS.exists(path)) {
+    req->redirect("http://192.168.4.1/");
+    return;
+  }
+
   if (path == "/" || path == "/index.html" || path == "/index.htm") {
     req->send_P(200, "text/html", INDEX_HTML);
     return;
@@ -570,10 +644,6 @@ static void handleStatic(AsyncWebServerRequest *req) {
   }
   if (path == "/terminal.html") {
     req->send_P(200, "text/html", TERMINAL_HTML);
-    return;
-  }
-  if (path == "/credits.html") {
-    req->send_P(200, "text/html", CREDITS_HTML);
     return;
   }
   if (path == "/error404.html") {
@@ -611,14 +681,19 @@ namespace webserver {
 
 void begin() {
   WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
   int hidden = settings::getHiddenAp() ? 1 : 0;
   WiFi.softAP(settings::getSSID().c_str(),
               settings::getPassword().c_str(),
               settings::getChannel(),
-              hidden);
+              hidden,
+              4);
+  WiFi.setTxPower((wifi_power_t)settings::getWifiPower());
 
+  dnsServer.start(53, "*", IPAddress(192, 168, 4, 1));
   debug::info("AP SSID: " + settings::getSSID());
   debug::info("AP IP: " + WiFi.softAPIP().toString());
+  debug::info("Captive Portal DNS started");
 
   server.on("/list", HTTP_GET, handleListScripts);
   server.on("/library", HTTP_GET, handleLibrary);
@@ -630,6 +705,7 @@ void begin() {
   server.on("/delete", HTTP_GET, handleDeleteScript);
   server.on("/run", HTTP_GET, handleRunScript);
   server.on("/status", HTTP_GET, handleStatus);
+  server.on("/usbmode", HTTP_ANY, handleSetUsbMode);
   server.on("/led", HTTP_POST, handleSetLed);
   server.on("/settings", HTTP_GET, handleGetSettings);
   server.on("/settings", HTTP_POST, handleSaveSettings);

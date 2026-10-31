@@ -1,0 +1,6 @@
+REM Windows — open Calculator via Run dialog
+DEFAULTDELAY 80
+GUI r
+DELAY 350
+STRING calc
+ENTER

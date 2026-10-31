@@ -1,0 +1,3 @@
+REM Windows — screenshot to Pictures (WIN+PRINTSCREEN on many layouts)
+DEFAULTDELAY 80
+GUI PRINTSCREEN

@@ -1,0 +1,9 @@
+REM Open PowerShell window
+DEFAULTDELAY 100
+GUI r
+DELAY 500
+STRING powershell
+ENTER
+DELAY 800
+STRING Write-Host 'EvilDuck ready'
+ENTER

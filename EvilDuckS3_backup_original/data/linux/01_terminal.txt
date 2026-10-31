@@ -1,0 +1,9 @@
+REM Open terminal (GNOME/KDE/XFCE — launcher search)
+DEFAULTDELAY 100
+GUI
+DELAY 400
+STRING terminal
+ENTER
+DELAY 700
+STRING echo EvilDuck S3 on Linux
+ENTER

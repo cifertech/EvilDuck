@@ -1,0 +1,6 @@
+REM Opens Calculator (Windows)
+DEFAULTDELAY 80
+GUI r
+DELAY 500
+STRING calc
+ENTER

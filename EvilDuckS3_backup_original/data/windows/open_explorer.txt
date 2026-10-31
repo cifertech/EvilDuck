@@ -1,0 +1,4 @@
+REM Windows — open File Explorer
+DEFAULTDELAY 80
+GUI e
+DELAY 400

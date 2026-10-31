@@ -1,5 +1,5 @@
 #include "storage.h"
-#include "spiffs.h"
+#include "duck_spiffs.h"
 #include "sd_card.h"
 #include "config.h"
 #include <SPIFFS.h>
